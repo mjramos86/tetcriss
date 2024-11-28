@@ -435,3 +435,24 @@
                     break;
                 case 'ArrowRight':
                     current
+case 'ArrowRight':
+                    currentPiece.moveRight();
+                    break;
+                case 'ArrowDown':
+                    currentPiece.moveDown();
+                    break;
+                case 'ArrowUp':
+                    currentPiece.rotate();
+                    break;
+                case 'r':
+                case 'R':
+                    resetGame();
+                    break;
+            }
+            drawBoard();
+        });
+
+        initGame();
+    </script>
+</body>
+</html>
