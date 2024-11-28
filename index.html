@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tetcriss - Quebec Edition</title>
+    <style>
+        body { 
+            background: #003087; 
+            margin: 0; 
+            font-family: Arial; 
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+        }
+        #game-container {
+            text-align: center;
+            padding: 20px;
+        }
+        canvas { 
+            border: 2px solid white;
+            background: black;
+        }
+        #score {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        #controls {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        @media (max-width: 600px) {
+            canvas {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Tetcriss</h1>
+        <div id="score">Score: 0</div>
+        <canvas id="game" width="240" height="400"></canvas>
+        <div id="controls">← → to move | ↑ to rotate | ↓ faster</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        const BLOCK = 20;
+        const COLS = canvas.width / BLOCK;
+        const ROWS = canvas.height / BLOCK;
+        
+        let score = 0;
+        let board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+        let piece = null;
+        
+        const SHAPES = [
+            [[1,1,1,1]],
+            [[1,1],[1,1]],
+            [[0,1,0],[1,1,1]],
+            [[1,0,0],[1,1,1]],
+            [[0,0,1],[1,1,1]],
+            [[1,1,0],[0,1,1]],
+            [[0,1,1],[1,1,0]]
+        ];
+
+        const COLORS = ['#FFFFFF', '#003087'];
+
+        function newPiece() {
+            piece = {
+                shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
+                color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                x: Math.floor(COLS/2) - 1,
+                y: 0
+            };
+        }
+
+        function drawBoard() {
+            board.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        ctx.fillStyle = value;
+                        ctx.fillRect(x * BLOCK, y * BLOCK, BLOCK-1, BLOCK-1);
+                    }
+                });
+            });
+        }
+
+        function drawPiece() {
+            if (!piece) return;
+            ctx.fillStyle = piece.color;
+            piece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        ctx.fillRect((piece.x + x) * BLOCK, 
+                                   (piece.y + y) * BLOCK, 
+                                   BLOCK-1, BLOCK-1);
+                    }
+                });
+            });
+        }
+
+        function collision() {
+            return piece.shape.some((row, dy) => {
+                return row.some((value, dx) => {
+                    let x = piece.x + dx;
+                    let y = piece.y + dy;
+                    return value && (
+                        y >= ROWS ||
+                        x < 0 ||
+                        x >= COLS ||
+                        (y >= 0 && board[y][x])
+                    );
+                });
+            });
+        }
+
+        function merge() {
+            piece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        if (piece.y + y < 0) {
+                            gameOver();
+                            return;
+                        }
+                        board[piece.y + y][piece.x + x] = piece.color;
+                    }
+                });
+            });
+        }
+
+        function clearLines() {
+            let linesCleared = 0;
+            outer: for (let y = ROWS - 1; y >= 0; y--) {
+                for (let x = 0; x < COLS; x++) {
+                    if (!board[y][x]) continue outer;
+                }
+                board.splice(y, 1);
+                board.unshift(Array(COLS).fill(0));
+                linesCleared++;
+                y++;
+            }
+            if (linesCleared) {
+                score += linesCleared * 100;
+                document.getElementById('score').textContent = `Score: ${score}`;
+            }
+        }
+
+        function gameOver() {
+            board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
+            score = 0;
+            document.getElementById('score').textContent = `Score: ${score}`;
+        }
+
+        function rotate() {
+            const rotated = piece.shape[0].map((_, i) =>
+                piece.shape.map(row => row[row.length-1-i])
+            );
+            const oldShape = piece.shape;
+            piece.shape = rotated;
+            if (collision()) piece.shape = oldShape;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBoard();
+            drawPiece();
+        }
+
+        function update() {
+            if (piece) {
+                piece.y++;
+                if (collision()) {
+                    piece.y--;
+                    merge();
+                    clearLines();
+                    newPiece();
+                }
+            } else {
+                newPiece();
+            }
+            draw();
+        }
+
+        document.addEventListener('keydown', e => {
+            if (!piece) return;
+            
+            switch(e.keyCode) {
+                case 37: // left
+                    piece.x--;
+                    if (collision()) piece.x++;
+                    break;
+                case 39: // right
+                    piece.x++;
+                    if (collision()) piece.x--;
+                    break;
+                case 40: // down
+                    piece.y++;
+                    if (collision()) {
+                        piece.y--;
+                        merge();
+                        clearLines();
+                        newPiece();
+                    }
+                    break;
+                case 38: // rotate
+                    rotate();
+                    break;
+            }
+            draw();
+        });
+
+        // Mobile controls
+        let touchStartX = null;
+        canvas.addEventListener('touchstart', e => {
+            touchStartX = e.touches[0].clientX;
+        });
+
+        canvas.addEventListener('touchmove', e => {
+            if (!touchStartX) return;
+            const diff = e.touches[0].clientX - touchStartX;
+            if (Math.abs(diff) > 30) {
+                piece.x += diff > 0 ? 1 : -1;
+                if (collision()) piece.x += diff > 0 ? -1 : 1;
+                touchStartX = e.touches[0].clientX;
+                draw();
+            }
+        });
+
+        canvas.addEventListener('touchend', () => {
+            touchStartX = null;
+        });
+
+        canvas.addEventListener('click', () => rotate());
+
+        setInterval(update, 1000);
+        draw();
+    </script>
+</body>
+</html>
