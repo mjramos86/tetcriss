@@ -4,7 +4,77 @@
     <meta charset="UTF-8">
     <title>TÉTCRISS</title>
     <style>
-        /* Previous styles remain the same until game-section */
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            margin-top: 20px;
+        }
+
+        #game-board {
+            border: 2px solid #666;
+            background: #000;
+            height: 480px;
+            width: 240px;
+        }
+
+        .stats {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+
+        #scoreboard {
+            margin-top: 20px;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 200px;
+        }
+
+        #scoreboard h2 {
+            margin-top: 0;
+            color: #ffd700;
+            text-align: center;
+        }
+
+        #scoreboard div {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .poutine-alert {
+            position: absolute;
+            font-size: 48px;
+            color: #ffd700;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: fadeInOut 2s ease-in-out;
+            pointer-events: none;
+        }
+
+        .poutine-decoration {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            pointer-events: none;
+            animation: float 3s infinite ease-in-out;
+            z-index: -1;
+        }
+
         .game-section {
             display: flex;
             gap: 20px;
@@ -27,10 +97,6 @@
             margin: 10px 0 20px;
             text-align: center;
             font-style: italic;
-        }
-
-        .poutine-decoration {
-            z-index: -1;
         }
 
         .name-input {
@@ -61,6 +127,18 @@
             padding: 5px 10px;
             cursor: pointer;
         }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
     </style>
 </head>
 <body>
@@ -79,16 +157,132 @@
     </div>
 
     <script>
-        // Previous constants and variables remain the same, then add:
+        const canvas = document.getElementById('game-board');
+        const ctx = canvas.getContext('2d');
+        const BLOCK_SIZE = 24;
+        const BOARD_WIDTH = 10;
+        const BOARD_HEIGHT = 20;
+        const COLORS = ['#F5DEB3', '#FFFFFF'];
+        const INITIAL_SPEED = 1000;
+        const MIN_SPEED = 100;
+        const SPEED_INCREASE = 50;
+        const MAX_SCORES = 10;
+        const POUTINE_IMAGES = Array.from({length: 22}, (_, i) => `images/Poutine ${i + 1}.jpg`);
+
+        let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+        let score = 0;
+        let poutineCount = 0;
+        let currentPiece = null;
+        let gameLoop = null;
+        let poutineDecorations = [];
+        let level = 1;
+        let currentSpeed = INITIAL_SPEED;
+        let highScores = JSON.parse(localStorage.getItem('tetcrissScores')) || [];
         let ginetteTimeout = null;
 
-        // Modify createPoutineDecoration:
+        const PIECES = [
+            [[1, 1, 1, 1]],
+            [[1, 1], [1, 1]],
+            [[1, 1, 1], [0, 1, 0]],
+            [[1, 1, 1], [1, 0, 0]],
+            [[1, 1, 1], [0, 0, 1]],
+            [[1, 1, 0], [0, 1, 1]],
+            [[0, 1, 1], [1, 1, 0]]
+        ];
+
+        class Piece {
+            constructor(shape = null) {
+                this.shape = shape || PIECES[Math.floor(Math.random() * PIECES.length)];
+                this.color = Math.random() < 0.5 ? 0 : 1;
+                this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+                this.y = 0;
+            }
+
+            draw() {
+                this.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            ctx.fillStyle = COLORS[this.color];
+                            ctx.fillRect((this.x + x) * BLOCK_SIZE, (this.y + y) * BLOCK_SIZE, 
+                                       BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                        }
+                    });
+                });
+            }
+
+            moveDown() {
+                this.y++;
+                if (this.collision()) {
+                    this.y--;
+                    this.freeze();
+                    return false;
+                }
+                return true;
+            }
+
+            moveLeft() {
+                this.x--;
+                if (this.collision()) {
+                    this.x++;
+                }
+            }
+
+            moveRight() {
+                this.x++;
+                if (this.collision()) {
+                    this.x--;
+                }
+            }
+
+            rotate() {
+                const rotated = this.shape[0].map((_, i) => 
+                    this.shape.map(row => row[i]).reverse()
+                );
+                const originalShape = this.shape;
+                this.shape = rotated;
+                
+                if (this.collision()) {
+                    this.shape = originalShape;
+                }
+            }
+
+            collision() {
+                return this.shape.some((row, dy) => 
+                    row.some((value, dx) => {
+                        if (!value) return false;
+                        const newX = this.x + dx;
+                        const newY = this.y + dy;
+                        return newX < 0 || newX >= BOARD_WIDTH || 
+                               newY >= BOARD_HEIGHT ||
+                               (newY >= 0 && board[newY][newX]);
+                    })
+                );
+            }
+
+            freeze() {
+                this.shape.forEach((row, dy) => {
+                    row.forEach((value, dx) => {
+                        if (value) {
+                            const newY = this.y + dy;
+                            if (newY >= 0) {
+                                board[newY][this.x + dx] = this.color + 1;
+                            }
+                        }
+                    });
+                });
+                checkLines();
+                currentPiece = new Piece();
+                if (currentPiece.collision()) {
+                    gameOver();
+                }
+            }
+        }
+
         function createPoutineDecoration() {
             const decoration = document.createElement('img');
             decoration.className = 'poutine-decoration';
             decoration.src = POUTINE_IMAGES[Math.floor(Math.random() * POUTINE_IMAGES.length)];
             
-            // Keep decorations away from game area and Ginette
             const gameBox = document.getElementById('game-container').getBoundingClientRect();
             const ginetteBox = document.getElementById('ginette').getBoundingClientRect();
             
@@ -109,7 +303,6 @@
             poutineCount++;
             document.getElementById('poutine-count').textContent = `Poutines: ${poutineCount}`;
 
-            // Switch Ginette's image
             const ginette = document.getElementById('ginette');
             ginette.src = 'Ginette2.jpg';
             clearTimeout(ginetteTimeout);
@@ -118,7 +311,69 @@
             }, 1500);
         }
 
-        // Modify gameOver function:
+        function updateScoreboard() {
+            highScores = highScores.sort((a, b) => b.score - a.score).slice(0, MAX_SCORES);
+            localStorage.setItem('tetcrissScores', JSON.stringify(highScores));
+            
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = '<h2>High Scores</h2>';
+            highScores.forEach((entry, index) => {
+                scoreboard.innerHTML += `<div>${index + 1}. ${entry.name || 'PLAYER'} - ${entry.score} points (${entry.poutines} poutines)</div>`;
+            });
+        }
+
+        function showPoutineAlert() {
+            const alert = document.createElement('div');
+            alert.className = 'poutine-alert';
+            alert.textContent = 'POUTINE!';
+            document.getElementById('game-container').appendChild(alert);
+            setTimeout(() => alert.remove(), 2000);
+        }
+
+        function updateSpeed() {
+            currentSpeed = Math.max(MIN_SPEED, INITIAL_SPEED - (level - 1) * SPEED_INCREASE);
+            clearInterval(gameLoop);
+            gameLoop = setInterval(() => {
+                currentPiece.moveDown();
+                drawBoard();
+            }, currentSpeed);
+        }
+
+        function updateScore(increment) {
+            score += increment;
+            document.getElementById('score').textContent = `Score: ${score}`;
+            if (Math.floor((score - increment) / 100) < Math.floor(score / 100)) {
+                showPoutineAlert();
+                createPoutineDecoration();
+                level = Math.floor(score / 100) + 1;
+                updateSpeed();
+            }
+        }
+
+        function checkLines() {
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(0));
+                    updateScore(100);
+                }
+            }
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            board.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        ctx.fillStyle = COLORS[value - 1];
+                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 
+                                   BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                    }
+                });
+            });
+            currentPiece.draw();
+        }
+
         function gameOver() {
             clearInterval(gameLoop);
             
@@ -137,7 +392,6 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // Add saveScore function:
         function saveScore() {
             const name = document.getElementById('player-name').value.toUpperCase() || 'PLAYER';
             highScores.push({ name, score, poutines: poutineCount });
@@ -150,19 +404,34 @@
             ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
         }
 
-        // Modify updateScoreboard:
-        function updateScoreboard() {
-            highScores = highScores.sort((a, b) => b.score - a.score).slice(0, MAX_SCORES);
-            localStorage.setItem('tetcrissScores', JSON.stringify(highScores));
-            
-            const scoreboard = document.getElementById('scoreboard');
-            scoreboard.innerHTML = '<h2>High Scores</h2>';
-            highScores.forEach((entry, index) => {
-                scoreboard.innerHTML += `<div>${index + 1}. ${entry.name || 'PLAYER'} - ${entry.score} points (${entry.poutines} poutines)</div>`;
-            });
+        function resetGame() {
+            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+            score = 0;
+            poutineCount = 0;
+            level = 1;
+            currentSpeed = INITIAL_SPEED;
+            document.getElementById('score').textContent = 'Score: 0';
+            document.getElementById('poutine-count').textContent = 'Poutines: 0';
+            poutineDecorations.forEach(dec => dec.remove());
+            poutineDecorations = [];
+            clearInterval(gameLoop);
+            currentPiece = new Piece();
+            initGame();
         }
 
-        // Rest of the code remains the same
-    </script>
-</body>
-</html>
+        function initGame() {
+            currentPiece = new Piece();
+            updateScoreboard();
+            gameLoop = setInterval(() => {
+                currentPiece.moveDown();
+                drawBoard();
+            }, currentSpeed);
+        }
+
+        document.addEventListener('keydown', event => {
+            switch(event.key) {
+                case 'ArrowLeft':
+                    currentPiece.moveLeft();
+                    break;
+                case 'ArrowRight':
+                    current
