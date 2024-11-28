@@ -1,241 +1,275 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <title>Tetcriss - Quebec Edition</title>
+    <meta charset="UTF-8">
+    <title>TÉTCRISS</title>
     <style>
-        body { 
-            background: #003087; 
-            margin: 0; 
-            font-family: Arial; 
-            display: flex; 
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+        body {
+            background: #1a1a1a;
             color: white;
-        }
-        #game-container {
-            text-align: center;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
             padding: 20px;
+            overflow: hidden;
         }
-        canvas { 
-            border: 2px solid white;
-            background: black;
+
+        #game-container {
+            position: relative;
+            margin-top: 20px;
         }
+
+        #game-board {
+            border: 2px solid #666;
+            background: #000;
+        }
+
         #score {
             font-size: 24px;
             margin: 10px 0;
         }
-        #controls {
-            margin-top: 10px;
-            font-size: 14px;
+
+        .poutine-alert {
+            position: absolute;
+            font-size: 48px;
+            color: #ffd700;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: fadeInOut 2s ease-in-out;
+            pointer-events: none;
         }
-        @media (max-width: 600px) {
-            canvas {
-                max-width: 100%;
-            }
+
+        .poutine-decoration {
+            position: absolute;
+            font-size: 24px;
+            color: #ffd700;
+            pointer-events: none;
+            animation: float 3s infinite ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
         }
     </style>
 </head>
 <body>
+    <h1>TÉTCRISS</h1>
+    <div id="score">Score: 0</div>
     <div id="game-container">
-        <h1>Tetcriss</h1>
-        <div id="score">Score: 0</div>
-        <canvas id="game" width="240" height="400"></canvas>
-        <div id="controls">← → to move | ↑ to rotate | ↓ faster</div>
+        <canvas id="game-board" width="300" height="600"></canvas>
     </div>
 
     <script>
-        const canvas = document.getElementById('game');
+        const canvas = document.getElementById('game-board');
         const ctx = canvas.getContext('2d');
-        const BLOCK = 20;
-        const COLS = canvas.width / BLOCK;
-        const ROWS = canvas.height / BLOCK;
-        
+        const BLOCK_SIZE = 30;
+        const BOARD_WIDTH = 10;
+        const BOARD_HEIGHT = 20;
+        const COLORS = ['#F5DEB3', '#FFFFFF']; // beige (fries), white (cheese curds)
+
+        let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
         let score = 0;
-        let board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
-        let piece = null;
-        
-        const SHAPES = [
-            [[1,1,1,1]],
-            [[1,1],[1,1]],
-            [[0,1,0],[1,1,1]],
-            [[1,0,0],[1,1,1]],
-            [[0,0,1],[1,1,1]],
-            [[1,1,0],[0,1,1]],
-            [[0,1,1],[1,1,0]]
+        let currentPiece = null;
+        let gameLoop = null;
+        let poutineDecorations = [];
+
+        const PIECES = [
+            [[1, 1, 1, 1]], // I
+            [[1, 1], [1, 1]], // O
+            [[1, 1, 1], [0, 1, 0]], // T
+            [[1, 1, 1], [1, 0, 0]], // L
+            [[1, 1, 1], [0, 0, 1]], // J
+            [[1, 1, 0], [0, 1, 1]], // S
+            [[0, 1, 1], [1, 1, 0]]  // Z
         ];
 
-        const COLORS = ['#FFFFFF', '#003087'];
+        class Piece {
+            constructor(shape = null) {
+                this.shape = shape || PIECES[Math.floor(Math.random() * PIECES.length)];
+                this.color = Math.random() < 0.5 ? 0 : 1; // Randomly choose fries or cheese
+                this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+                this.y = 0;
+            }
 
-        function newPiece() {
-            piece = {
-                shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
-                color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                x: Math.floor(COLS/2) - 1,
-                y: 0
-            };
+            draw() {
+                this.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            ctx.fillStyle = COLORS[this.color];
+                            ctx.fillRect((this.x + x) * BLOCK_SIZE, (this.y + y) * BLOCK_SIZE, 
+                                       BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                        }
+                    });
+                });
+            }
+
+            moveDown() {
+                this.y++;
+                if (this.collision()) {
+                    this.y--;
+                    this.freeze();
+                    return false;
+                }
+                return true;
+            }
+
+            moveLeft() {
+                this.x--;
+                if (this.collision()) {
+                    this.x++;
+                }
+            }
+
+            moveRight() {
+                this.x++;
+                if (this.collision()) {
+                    this.x--;
+                }
+            }
+
+            rotate() {
+                const rotated = this.shape[0].map((_, i) => 
+                    this.shape.map(row => row[i]).reverse()
+                );
+                const originalShape = this.shape;
+                this.shape = rotated;
+                
+                if (this.collision()) {
+                    this.shape = originalShape;
+                }
+            }
+
+            collision() {
+                return this.shape.some((row, dy) => 
+                    row.some((value, dx) => {
+                        if (!value) return false;
+                        const newX = this.x + dx;
+                        const newY = this.y + dy;
+                        return newX < 0 || newX >= BOARD_WIDTH || 
+                               newY >= BOARD_HEIGHT ||
+                               (newY >= 0 && board[newY][newX]);
+                    })
+                );
+            }
+
+            freeze() {
+                this.shape.forEach((row, dy) => {
+                    row.forEach((value, dx) => {
+                        if (value) {
+                            const newY = this.y + dy;
+                            if (newY >= 0) {
+                                board[newY][this.x + dx] = this.color + 1;
+                            }
+                        }
+                    });
+                });
+                checkLines();
+                currentPiece = new Piece();
+                if (currentPiece.collision()) {
+                    gameOver();
+                }
+            }
+        }
+
+        function createPoutineDecoration() {
+            const decoration = document.createElement('div');
+            decoration.className = 'poutine-decoration';
+            decoration.textContent = '🍟';
+            decoration.style.left = Math.random() * window.innerWidth + 'px';
+            decoration.style.top = Math.random() * window.innerHeight + 'px';
+            document.body.appendChild(decoration);
+            poutineDecorations.push(decoration);
+        }
+
+        function showPoutineAlert() {
+            const alert = document.createElement('div');
+            alert.className = 'poutine-alert';
+            alert.textContent = 'POUTINE!';
+            document.getElementById('game-container').appendChild(alert);
+            setTimeout(() => alert.remove(), 2000);
+        }
+
+        function updateScore(increment) {
+            score += increment;
+            document.getElementById('score').textContent = `Score: ${score}`;
+            if (Math.floor((score - increment) / 100) < Math.floor(score / 100)) {
+                showPoutineAlert();
+                createPoutineDecoration();
+            }
+        }
+
+        function checkLines() {
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(0));
+                    updateScore(100);
+                }
+            }
         }
 
         function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             board.forEach((row, y) => {
                 row.forEach((value, x) => {
                     if (value) {
-                        ctx.fillStyle = value;
-                        ctx.fillRect(x * BLOCK, y * BLOCK, BLOCK-1, BLOCK-1);
+                        ctx.fillStyle = COLORS[value - 1];
+                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 
+                                   BLOCK_SIZE - 1, BLOCK_SIZE - 1);
                     }
                 });
             });
-        }
-
-        function drawPiece() {
-            if (!piece) return;
-            ctx.fillStyle = piece.color;
-            piece.shape.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value) {
-                        ctx.fillRect((piece.x + x) * BLOCK, 
-                                   (piece.y + y) * BLOCK, 
-                                   BLOCK-1, BLOCK-1);
-                    }
-                });
-            });
-        }
-
-        function collision() {
-            return piece.shape.some((row, dy) => {
-                return row.some((value, dx) => {
-                    let x = piece.x + dx;
-                    let y = piece.y + dy;
-                    return value && (
-                        y >= ROWS ||
-                        x < 0 ||
-                        x >= COLS ||
-                        (y >= 0 && board[y][x])
-                    );
-                });
-            });
-        }
-
-        function merge() {
-            piece.shape.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value) {
-                        if (piece.y + y < 0) {
-                            gameOver();
-                            return;
-                        }
-                        board[piece.y + y][piece.x + x] = piece.color;
-                    }
-                });
-            });
-        }
-
-        function clearLines() {
-            let linesCleared = 0;
-            outer: for (let y = ROWS - 1; y >= 0; y--) {
-                for (let x = 0; x < COLS; x++) {
-                    if (!board[y][x]) continue outer;
-                }
-                board.splice(y, 1);
-                board.unshift(Array(COLS).fill(0));
-                linesCleared++;
-                y++;
-            }
-            if (linesCleared) {
-                score += linesCleared * 100;
-                document.getElementById('score').textContent = `Score: ${score}`;
-            }
+            currentPiece.draw();
         }
 
         function gameOver() {
-            board = Array(ROWS).fill().map(() => Array(COLS).fill(0));
-            score = 0;
-            document.getElementById('score').textContent = `Score: ${score}`;
+            clearInterval(gameLoop);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
         }
 
-        function rotate() {
-            const rotated = piece.shape[0].map((_, i) =>
-                piece.shape.map(row => row[row.length-1-i])
-            );
-            const oldShape = piece.shape;
-            piece.shape = rotated;
-            if (collision()) piece.shape = oldShape;
+        function initGame() {
+            currentPiece = new Piece();
+            gameLoop = setInterval(() => {
+                currentPiece.moveDown();
+                drawBoard();
+            }, 1000);
         }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        document.addEventListener('keydown', event => {
+            switch(event.key) {
+                case 'ArrowLeft':
+                    currentPiece.moveLeft();
+                    break;
+                case 'ArrowRight':
+                    currentPiece.moveRight();
+                    break;
+                case 'ArrowDown':
+                    currentPiece.moveDown();
+                    break;
+                case 'ArrowUp':
+                    currentPiece.rotate();
+                    break;
+            }
             drawBoard();
-            drawPiece();
-        }
-
-        function update() {
-            if (piece) {
-                piece.y++;
-                if (collision()) {
-                    piece.y--;
-                    merge();
-                    clearLines();
-                    newPiece();
-                }
-            } else {
-                newPiece();
-            }
-            draw();
-        }
-
-        document.addEventListener('keydown', e => {
-            if (!piece) return;
-            
-            switch(e.keyCode) {
-                case 37: // left
-                    piece.x--;
-                    if (collision()) piece.x++;
-                    break;
-                case 39: // right
-                    piece.x++;
-                    if (collision()) piece.x--;
-                    break;
-                case 40: // down
-                    piece.y++;
-                    if (collision()) {
-                        piece.y--;
-                        merge();
-                        clearLines();
-                        newPiece();
-                    }
-                    break;
-                case 38: // rotate
-                    rotate();
-                    break;
-            }
-            draw();
         });
 
-        // Mobile controls
-        let touchStartX = null;
-        canvas.addEventListener('touchstart', e => {
-            touchStartX = e.touches[0].clientX;
-        });
-
-        canvas.addEventListener('touchmove', e => {
-            if (!touchStartX) return;
-            const diff = e.touches[0].clientX - touchStartX;
-            if (Math.abs(diff) > 30) {
-                piece.x += diff > 0 ? 1 : -1;
-                if (collision()) piece.x += diff > 0 ? -1 : 1;
-                touchStartX = e.touches[0].clientX;
-                draw();
-            }
-        });
-
-        canvas.addEventListener('touchend', () => {
-            touchStartX = null;
-        });
-
-        canvas.addEventListener('click', () => rotate());
-
-        setInterval(update, 1000);
-        draw();
+        initGame();
     </script>
 </body>
 </html>
