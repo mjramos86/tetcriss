@@ -149,7 +149,7 @@
     <div id="score" class="stats">Score: 0</div>
     <div id="poutine-count" class="stats">Poutines: 0</div>
     <div class="game-section">
-        <img src="Ginette1.jpg" alt="Ginette" id="ginette" class="ginette-portrait">
+        <img src="images/Ginette1.jpg" alt="Ginette" id="ginette" class="ginette-portrait">
         <div id="game-container">
             <canvas id="game-board" width="240" height="480"></canvas>
         </div>
@@ -304,10 +304,10 @@
             document.getElementById('poutine-count').textContent = `Poutines: ${poutineCount}`;
 
             const ginette = document.getElementById('ginette');
-            ginette.src = 'Ginette2.jpg';
+            ginette.src = 'images/Ginette2.jpg';
             clearTimeout(ginetteTimeout);
             ginetteTimeout = setTimeout(() => {
-                ginette.src = 'Ginette1.jpg';
+                ginette.src = 'images/Ginette1.jpg';
             }, 1500);
         }
 
