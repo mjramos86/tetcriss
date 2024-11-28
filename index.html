@@ -26,9 +26,30 @@
             background: #000;
         }
 
-        #score {
+        .stats {
             font-size: 24px;
             margin: 10px 0;
+        }
+
+        #scoreboard {
+            margin-top: 20px;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 200px;
+        }
+
+        #scoreboard h2 {
+            margin-top: 0;
+            color: #ffd700;
+            text-align: center;
+        }
+
+        #scoreboard div {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #333;
         }
 
         .poutine-alert {
@@ -44,8 +65,9 @@
 
         .poutine-decoration {
             position: absolute;
-            font-size: 24px;
-            color: #ffd700;
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
             pointer-events: none;
             animation: float 3s infinite ease-in-out;
         }
@@ -61,13 +83,23 @@
             50% { transform: translateY(-10px); }
             100% { transform: translateY(0px); }
         }
+
+        .game-section {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
     </style>
 </head>
 <body>
     <h1>TÉTCRISS</h1>
-    <div id="score">Score: 0</div>
-    <div id="game-container">
-        <canvas id="game-board" width="300" height="600"></canvas>
+    <div id="score" class="stats">Score: 0</div>
+    <div id="poutine-count" class="stats">Poutines: 0</div>
+    <div class="game-section">
+        <div id="game-container">
+            <canvas id="game-board" width="300" height="600"></canvas>
+        </div>
+        <div id="scoreboard"></div>
     </div>
 
     <script>
@@ -76,28 +108,38 @@
         const BLOCK_SIZE = 30;
         const BOARD_WIDTH = 10;
         const BOARD_HEIGHT = 20;
-        const COLORS = ['#F5DEB3', '#FFFFFF']; // beige (fries), white (cheese curds)
+        const COLORS = ['#F5DEB3', '#FFFFFF'];
+        const INITIAL_SPEED = 1000;
+        const MIN_SPEED = 100;
+        const SPEED_INCREASE = 50;
+        const MAX_SCORES = 10;
+
+        const POUTINE_IMAGES = Array.from({length: 22}, (_, i) => `images/Poutine ${i + 1}.jpg`);
 
         let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
         let score = 0;
+        let poutineCount = 0;
         let currentPiece = null;
         let gameLoop = null;
         let poutineDecorations = [];
+        let level = 1;
+        let currentSpeed = INITIAL_SPEED;
+        let highScores = JSON.parse(localStorage.getItem('tetcrissScores')) || [];
 
         const PIECES = [
-            [[1, 1, 1, 1]], // I
-            [[1, 1], [1, 1]], // O
-            [[1, 1, 1], [0, 1, 0]], // T
-            [[1, 1, 1], [1, 0, 0]], // L
-            [[1, 1, 1], [0, 0, 1]], // J
-            [[1, 1, 0], [0, 1, 1]], // S
-            [[0, 1, 1], [1, 1, 0]]  // Z
+            [[1, 1, 1, 1]],
+            [[1, 1], [1, 1]],
+            [[1, 1, 1], [0, 1, 0]],
+            [[1, 1, 1], [1, 0, 0]],
+            [[1, 1, 1], [0, 0, 1]],
+            [[1, 1, 0], [0, 1, 1]],
+            [[0, 1, 1], [1, 1, 0]]
         ];
 
         class Piece {
             constructor(shape = null) {
                 this.shape = shape || PIECES[Math.floor(Math.random() * PIECES.length)];
-                this.color = Math.random() < 0.5 ? 0 : 1; // Randomly choose fries or cheese
+                this.color = Math.random() < 0.5 ? 0 : 1;
                 this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
                 this.y = 0;
             }
@@ -183,13 +225,26 @@
         }
 
         function createPoutineDecoration() {
-            const decoration = document.createElement('div');
+            const decoration = document.createElement('img');
             decoration.className = 'poutine-decoration';
-            decoration.textContent = '🍟';
-            decoration.style.left = Math.random() * window.innerWidth + 'px';
-            decoration.style.top = Math.random() * window.innerHeight + 'px';
+            decoration.src = POUTINE_IMAGES[Math.floor(Math.random() * POUTINE_IMAGES.length)];
+            decoration.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+            decoration.style.top = Math.random() * (window.innerHeight - 100) + 'px';
             document.body.appendChild(decoration);
             poutineDecorations.push(decoration);
+            poutineCount++;
+            document.getElementById('poutine-count').textContent = `Poutines: ${poutineCount}`;
+        }
+
+        function updateScoreboard() {
+            highScores = highScores.sort((a, b) => b.score - a.score).slice(0, MAX_SCORES);
+            localStorage.setItem('tetcrissScores', JSON.stringify(highScores));
+            
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = '<h2>High Scores</h2>';
+            highScores.forEach((entry, index) => {
+                scoreboard.innerHTML += `<div>${index + 1}. ${entry.score} points (${entry.poutines} poutines)</div>`;
+            });
         }
 
         function showPoutineAlert() {
@@ -200,12 +255,23 @@
             setTimeout(() => alert.remove(), 2000);
         }
 
+        function updateSpeed() {
+            currentSpeed = Math.max(MIN_SPEED, INITIAL_SPEED - (level - 1) * SPEED_INCREASE);
+            clearInterval(gameLoop);
+            gameLoop = setInterval(() => {
+                currentPiece.moveDown();
+                drawBoard();
+            }, currentSpeed);
+        }
+
         function updateScore(increment) {
             score += increment;
             document.getElementById('score').textContent = `Score: ${score}`;
             if (Math.floor((score - increment) / 100) < Math.floor(score / 100)) {
                 showPoutineAlert();
                 createPoutineDecoration();
+                level = Math.floor(score / 100) + 1;
+                updateSpeed();
             }
         }
 
@@ -235,6 +301,9 @@
 
         function gameOver() {
             clearInterval(gameLoop);
+            highScores.push({ score: score, poutines: poutineCount });
+            updateScoreboard();
+            
             ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#fff';
@@ -243,12 +312,27 @@
             ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
         }
 
+        function resetGame() {
+            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+            score = 0;
+            poutineCount = 0;
+            level = 1;
+            currentSpeed = INITIAL_SPEED;
+            document.getElementById('score').textContent = 'Score: 0';
+            document.getElementById('poutine-count').textContent = 'Poutines: 0';
+            poutineDecorations.forEach(dec => dec.remove());
+            poutineDecorations = [];
+            currentPiece = new Piece();
+            drawBoard();
+        }
+
         function initGame() {
             currentPiece = new Piece();
+            updateScoreboard();
             gameLoop = setInterval(() => {
                 currentPiece.moveDown();
                 drawBoard();
-            }, 1000);
+            }, currentSpeed);
         }
 
         document.addEventListener('keydown', event => {
@@ -264,6 +348,10 @@
                     break;
                 case 'ArrowUp':
                     currentPiece.rotate();
+                    break;
+                case 'r':
+                case 'R':
+                    resetGame();
                     break;
             }
             drawBoard();
