@@ -24,6 +24,8 @@
         #game-board {
             border: 2px solid #666;
             background: #000;
+            height: 480px;
+            width: 240px;
         }
 
         .stats {
@@ -97,7 +99,7 @@
     <div id="poutine-count" class="stats">Poutines: 0</div>
     <div class="game-section">
         <div id="game-container">
-            <canvas id="game-board" width="300" height="600"></canvas>
+            <canvas id="game-board" width="240" height="480"></canvas>
         </div>
         <div id="scoreboard"></div>
     </div>
@@ -105,7 +107,7 @@
     <script>
         const canvas = document.getElementById('game-board');
         const ctx = canvas.getContext('2d');
-        const BLOCK_SIZE = 30;
+        const BLOCK_SIZE = 24;
         const BOARD_WIDTH = 10;
         const BOARD_HEIGHT = 20;
         const COLORS = ['#F5DEB3', '#FFFFFF'];
