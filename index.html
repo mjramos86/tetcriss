@@ -419,37 +419,34 @@ function drawBoard() {
     }
 }
 
-        function gameOver() {
-            clearInterval(gameLoop);
-            gameLoop = null;
-            
-            // Switch to video
-            const ginette = document.getElementById('ginette');
-            ginetteVideo = document.createElement('video');
-            ginetteVideo.src = 'images/GinetteGameOver.mp4';
-            ginetteVideo.className = 'ginette-portrait';
-            ginetteVideo.autoplay = true;
-            ginetteVideo.loop = true;
-            ginette.parentNode.replaceChild(ginetteVideo, ginette);
-            
-            const nameInput = document.createElement('div');
-            nameInput.className = 'name-input';
-            nameInput.innerHTML = `
-                <h3>Game Over</h3>
-                <p>Enter your name (max 6 characters):</p>
-                <input type="text" maxlength="6" id="player-name">
-                <br>
-                <button onclick="saveScore()">Save Score</button>
-                ```javascript
-                <br>
-                <button onclick="saveScore()">Save Score</button>
-            `;
-            document.getElementById('game-container').appendChild(nameInput);
-            
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            currentPiece = null;
-        }
+function gameOver() {
+    clearInterval(gameLoop);
+    gameLoop = null;
+    
+    // Switch to video
+    const ginette = document.getElementById('ginette');
+    ginetteVideo = document.createElement('video');
+    ginetteVideo.src = 'images/GinetteGameOver.mp4';
+    ginetteVideo.className = 'ginette-portrait';
+    ginetteVideo.autoplay = true;
+    ginetteVideo.loop = true;
+    ginette.parentNode.replaceChild(ginetteVideo, ginette);
+    
+    const nameInput = document.createElement('div');
+    nameInput.className = 'name-input';
+    nameInput.innerHTML = `
+        <h3>Game Over</h3>
+        <p>Enter your name (max 6 characters):</p>
+        <input type="text" maxlength="6" id="player-name">
+        <br>
+        <button onclick="saveScore()">Save Score</button>
+    `;
+    document.getElementById('game-container').appendChild(nameInput);
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    currentPiece = null;
+}
 
         function saveScore() {
             const name = document.getElementById('player-name').value.toUpperCase() || 'PLAYER';
@@ -502,11 +499,6 @@ function initGame() {
     
     drawBoard();
 }
-
-// Start the game immediately
-window.addEventListener('load', () => {
-    initGame();
-});
 
         // Keyboard controls
         document.addEventListener('keydown', event => {
