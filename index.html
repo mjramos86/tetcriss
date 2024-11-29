@@ -100,6 +100,8 @@
             z-index: 10;
         }
 
+        let ginetteVideo = null;
+
         .name-input input {
             background: #333;
             border: 1px solid #666;
@@ -413,7 +415,16 @@
 
    function gameOver() {
     clearInterval(gameLoop);
-    gameLoop = null; // Clear the interval reference
+    gameLoop = null;
+    
+    // Switch to video
+    const ginette = document.getElementById('ginette');
+    ginetteVideo = document.createElement('video');
+    ginetteVideo.src = 'images/GinetteGameOver.mp4';
+    ginetteVideo.className = 'ginette-portrait';
+    ginetteVideo.autoplay = true;
+    ginetteVideo.loop = true;
+    ginette.parentNode.replaceChild(ginetteVideo, ginette);
     
     const nameInput = document.createElement('div');
     nameInput.className = 'name-input';
@@ -428,7 +439,7 @@
     
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    currentPiece = null; // Remove current piece
+    currentPiece = null;
 }
 
 function saveScore() {
@@ -441,21 +452,17 @@ function saveScore() {
 
 function resetGame() {
     const nameInput = document.querySelector('.name-input');
-    if (nameInput) return; // Don't reset if name input is still showing
+    if (nameInput) return;
     
-    board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
-    score = 0;
-    poutineCount = 0;
-    level = 1;
-    currentSpeed = INITIAL_SPEED;
-    document.getElementById('score').textContent = 'Score: 0';
-    document.getElementById('poutine-count').textContent = 'Poutines: 0';
-    poutineDecorations.forEach(dec => dec.remove());
-    poutineDecorations = [];
-    clearInterval(gameLoop);
-    currentPiece = new Piece();
-    initGame();
-}
+    // Restore Ginette image
+    if (ginetteVideo) {
+        const ginette = document.createElement('img');
+        ginette.src = 'images/Ginette1.jpg';
+        ginette.id = 'ginette';
+        ginette.className = 'ginette-portrait';
+        ginetteVideo.parentNode.replaceChild(ginette, ginetteVideo);
+        ginetteVideo = null;
+    }
 
        function initGame() {
            currentPiece = new Piece();
