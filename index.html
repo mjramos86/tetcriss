@@ -145,9 +145,28 @@
             touch-action: manipulation;
         }
 
-        @media (max-width: 768px) {
-            .touch-controls {
-                display: flex;
+      @media (max-width: 768px) {
+    .game-section {
+        transform: scale(0.8);
+        margin-top: -40px;
+    }
+    
+    .touch-controls {
+        display: flex;
+        justify-content: center;
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+    }
+
+    .touch-btn {
+        width: 70px;
+        height: 70px;
+        background: rgba(255, 255, 255, 0.3);
+        font-size: 28px;
+    }
+}
             }
         }
 
@@ -482,30 +501,30 @@
            drawBoard();
        });
 
-       // Touch controls
-       document.getElementById('leftBtn').addEventListener('touchstart', e => {
-           e.preventDefault();
-           currentPiece.moveLeft();
-           drawBoard();
-       });
+let touchInterval;
 
-       document.getElementById('rightBtn').addEventListener('touchstart', e => {
-           e.preventDefault();
-           currentPiece.moveRight();
-           drawBoard();
-       });
+function addTouchControls(btn, action) {
+    btn.addEventListener('touchstart', e => {
+        e.preventDefault();
+        action();
+        drawBoard();
+        touchInterval = setInterval(() => {
+            action();
+            drawBoard();
+        }, 100);
+    });
 
-       document.getElementById('downBtn').addEventListener('touchstart', e => {
-           e.preventDefault();
-           currentPiece.moveDown();
-           drawBoard();
-       });
+    btn.addEventListener('touchend', () => {
+        clearInterval(touchInterval);
+    });
+}
 
-       document.getElementById('rotateBtn').addEventListener('touchstart', e => {
-           e.preventDefault();
-           currentPiece.rotate();
-           drawBoard();
-       });
+addTouchControls(document.getElementById('leftBtn'), () => currentPiece.moveLeft());
+addTouchControls(document.getElementById('rightBtn'), () => currentPiece.moveRight());
+addTouchControls(document.getElementById('downBtn'), () => currentPiece.moveDown());
+addTouchControls(document.getElementById('rotateBtn'), () => currentPiece.rotate());
+
+initGame();
 
        initGame();
    </script>
