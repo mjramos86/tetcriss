@@ -401,21 +401,23 @@
             }
         }
 
-        function drawBoard() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            board.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value) {
-                        ctx.fillStyle = COLORS[value - 1];
-                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 
-                                   BLOCK_SIZE - 1, BLOCK_SIZE - 1);
-                    }
-                });
-            });
-            if (currentPiece) {
-                currentPiece.draw();
+function drawBoard() {
+    if (!ctx) return;  // Safety check
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    board.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                ctx.fillStyle = COLORS[value - 1];
+                ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 
+                           BLOCK_SIZE - 1, BLOCK_SIZE - 1);
             }
-        }
+        });
+    });
+    if (currentPiece) {
+        currentPiece.draw();
+    }
+}
 
         function gameOver() {
             clearInterval(gameLoop);
@@ -485,10 +487,11 @@
             initGame();
         }
 
-   function initGame() {
-    console.log("Initializing game...");
+function initGame() {
+    board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
     currentPiece = new Piece();
-    console.log("Current piece:", currentPiece);
+    if (gameLoop) clearInterval(gameLoop);
+    
     updateScoreboard();
     gameLoop = setInterval(() => {
         if (currentPiece) {
@@ -496,7 +499,14 @@
             drawBoard();
         }
     }, currentSpeed);
+    
+    drawBoard();
 }
+
+// Start the game immediately
+window.addEventListener('load', () => {
+    initGame();
+});
 
         // Keyboard controls
         document.addEventListener('keydown', event => {
