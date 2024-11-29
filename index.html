@@ -422,50 +422,49 @@
             currentPiece.draw();
         }
 
-        function gameOver() {
-            clearInterval(gameLoop);
-            
-            const nameInput = document.createElement('div');
-            nameInput.className = 'name-input';
-            nameInput.innerHTML = `
-                <h3>Game Over</h3>
-                <p>Enter your name (max 6 characters):</p>
-                <input type="text" maxlength="6" id="player-name">
-                <br>
-                <button onclick="saveScore()">Save Score</button>
-            `;
-            document.getElementById('game-container').appendChild(nameInput);
-            
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
+      function gameOver() {
+    clearInterval(gameLoop);
+    
+    const nameInput = document.createElement('div');
+    nameInput.className = 'name-input';
+    nameInput.innerHTML = `
+        <h3>Game Over</h3>
+        <p>Enter your name (max 6 characters):</p>
+        <input type="text" maxlength="6" id="player-name">
+        <br>
+        <button onclick="saveScore()">Save Score</button>
+    `;
+    document.getElementById('game-container').appendChild(nameInput);
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
-        function saveScore() {
-            const name = document.getElementById('player-name').value.toUpperCase() || 'PLAYER';
-            highScores.push({ name, score, poutines: poutineCount });
-            updateScoreboard();
-            document.querySelector('.name-input').remove();
-            
-            ctx.fillStyle = '#fff';
-            ctx.font = '30px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
-        }
+function saveScore() {
+    const name = document.getElementById('player-name').value.toUpperCase() || 'PLAYER';
+    highScores.push({ name, score, poutines: poutineCount });
+    updateScoreboard();
+    document.querySelector('.name-input').remove();
+    resetGame();
+}
 
-       function resetGame() {
-           board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
-           score = 0;
-           poutineCount = 0;
-           level = 1;
-           currentSpeed = INITIAL_SPEED;
-           document.getElementById('score').textContent = 'Score: 0';
-           document.getElementById('poutine-count').textContent = 'Poutines: 0';
-           poutineDecorations.forEach(dec => dec.remove());
-           poutineDecorations = [];
-           clearInterval(gameLoop);
-           currentPiece = new Piece();
-           initGame();
-       }
+function resetGame() {
+    const nameInput = document.querySelector('.name-input');
+    if (nameInput) return; // Don't reset if name input is still showing
+    
+    board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+    score = 0;
+    poutineCount = 0;
+    level = 1;
+    currentSpeed = INITIAL_SPEED;
+    document.getElementById('score').textContent = 'Score: 0';
+    document.getElementById('poutine-count').textContent = 'Poutines: 0';
+    poutineDecorations.forEach(dec => dec.remove());
+    poutineDecorations = [];
+    clearInterval(gameLoop);
+    currentPiece = new Piece();
+    initGame();
+}
 
        function initGame() {
            currentPiece = new Piece();
