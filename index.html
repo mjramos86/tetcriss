@@ -422,8 +422,9 @@
             currentPiece.draw();
         }
 
-      function gameOver() {
+   function gameOver() {
     clearInterval(gameLoop);
+    gameLoop = null; // Clear the interval reference
     
     const nameInput = document.createElement('div');
     nameInput.className = 'name-input';
@@ -438,6 +439,7 @@
     
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    currentPiece = null; // Remove current piece
 }
 
 function saveScore() {
