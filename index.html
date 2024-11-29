@@ -485,14 +485,18 @@
             initGame();
         }
 
-        function initGame() {
-            currentPiece = new Piece();
-            updateScoreboard();
-            gameLoop = setInterval(() => {
-                currentPiece.moveDown();
-                drawBoard();
-            }, currentSpeed);
+   function initGame() {
+    console.log("Initializing game...");
+    currentPiece = new Piece();
+    console.log("Current piece:", currentPiece);
+    updateScoreboard();
+    gameLoop = setInterval(() => {
+        if (currentPiece) {
+            currentPiece.moveDown();
+            drawBoard();
         }
+    }, currentSpeed);
+}
 
         // Keyboard controls
         document.addEventListener('keydown', event => {
