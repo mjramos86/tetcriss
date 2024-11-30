@@ -34,14 +34,25 @@
             margin: 10px 0;
         }
 
-        .ginette-portrait {
-            width: 200px;
-            height: 300px;
-            object-fit: cover;
-            position: absolute;
-            left: -220px;
-            top: 0;
-            z-index: 9999;
+        #scoreboard {
+            margin-top: 20px;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 200px;
+        }
+
+        #scoreboard h2 {
+            margin-top: 0;
+            color: #ffd700;
+            text-align: center;
+        }
+
+        #scoreboard div {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid #333;
         }
 
         .poutine-decoration {
@@ -54,6 +65,82 @@
             z-index: -1;
         }
 
+        .game-section {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        .ginette-portrait {
+            width: 200px;
+            height: 300px;
+            object-fit: cover;
+            position: absolute;
+            left: -220px;
+            top: 0;
+            z-index: 9999;
+        }
+
+        .game-intro {
+            font-size: 14px;
+            max-width: 600px;
+            margin: 10px 0 20px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .name-input {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .name-input input {
+            background: #333;
+            border: 1px solid #666;
+            color: white;
+            padding: 5px;
+            margin: 10px 0;
+            text-transform: uppercase;
+        }
+
+        .name-input button {
+            background: #666;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .touch-controls {
+            display: none;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+        }
+
+        .touch-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 28px;
+            touch-action: manipulation;
+        }
+
         .explosion {
             position: absolute;
             width: 120px;
@@ -64,11 +151,21 @@
             z-index: 100;
         }
 
-        .game-section {
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-            position: relative;
+        @media (max-width: 768px) {
+            .game-section {
+                transform: scale(0.8);
+                margin-top: -40px;
+            }
+            
+            .touch-controls {
+                display: flex;
+            }
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
         }
 
         @keyframes float {
@@ -85,6 +182,9 @@
 </head>
 <body>
     <h1>TÉTCRISS</h1>
+    <div class="game-intro">
+        Ginette vient d'pogner une criss de grosse commande de poutines ben grasses avec du fromage qui fait squick-squick en tabarnac! Enweye, donne-y un coup d'main pour préparer les poutines, toé!
+    </div>
     <div id="score" class="stats">Score: 0</div>
     <div id="poutine-count" class="stats">Poutines: 0</div>
     <div class="game-section">
@@ -92,10 +192,16 @@
         <div id="game-container">
             <canvas id="game-board" width="240" height="480"></canvas>
         </div>
+        <div id="scoreboard"></div>
+    </div>
+    <div class="touch-controls">
+        <button class="touch-btn" id="leftBtn">←</button>
+        <button class="touch-btn" id="downBtn">↓</button>
+        <button class="touch-btn" id="rotateBtn">↻</button>
+        <button class="touch-btn" id="rightBtn">→</button>
     </div>
 
     <script>
-        // Constants
         const canvas = document.getElementById('game-board');
         const ctx = canvas.getContext('2d');
         const BLOCK_SIZE = 24;
@@ -103,21 +209,31 @@
         const BOARD_HEIGHT = 20;
         const COLORS = ['#F5DEB3', '#FFFFFF', '#8B4513'];
         const INITIAL_SPEED = 1000;
+        const MIN_SPEED = 100;
+        const SPEED_INCREASE = 50;
+        const MAX_SCORES = 10;
+        const POUTINE_IMAGES = Array.from({length: 22}, (_, i) => `images/Poutine ${i + 1}.jpg`);
         const SPECIAL_PIECE_POINTS = 500;
 
-        const poutineImages = Array.from({ length: 22 }, (_, i) => {
-    const img = new Image();
-    img.src = `images/Poutine ${i + 1}.jpg`;
-    return img;
+        // Preload poutine images
+        const poutineImageObjects = POUTINE_IMAGES.map(src => {
+            const img = new Image();
+            img.src = src;
+            return img;
+        });
 
-        // Game state
         let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
         let score = 0;
+        let poutineCount = 0;
         let currentPiece = null;
         let gameLoop = null;
-        let lastSpecialPiece = 0;
-        let poutineCount = 0;
+        let poutineDecorations = [];
+        let level = 1;
+        let currentSpeed = INITIAL_SPEED;
+        let highScores = JSON.parse(localStorage.getItem('tetcrissScores')) || [];
         let ginetteTimeout = null;
+        let ginetteVideo = null;
+        let lastSpecialPiece = 0;
 
         const PIECES = [
             [[1, 1, 1, 1]],
@@ -130,64 +246,63 @@
         ];
 
         class Piece {
-constructor(isSpecial = false) {
-    if (isSpecial) {
-        this.shape = [[1, 1], [1, 1]];
-        this.isSpecial = true;
-        this.poutineImage = poutineImages[Math.floor(Math.random() * poutineImages.length)];
-    } else {
-        this.shape = PIECES[Math.floor(Math.random() * PIECES.length)];
-        this.isSpecial = false;
-        this.color = Math.floor(Math.random() * COLORS.length);
-    }
-    this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
-    this.y = 0;
-}
-
-         draw() {
-    if (this.isSpecial) {
-        // Draw golden border
-        ctx.fillStyle = '#FFD700';
-        this.shape.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value) {
-                    ctx.strokeStyle = '#FFD700';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(
-                        (this.x + x) * BLOCK_SIZE,
-                        (this.y + y) * BLOCK_SIZE,
-                        BLOCK_SIZE,
-                        BLOCK_SIZE
-                    );
+            constructor(isSpecial = false) {
+                if (isSpecial) {
+                    this.shape = [[1, 1], [1, 1]];
+                    this.isSpecial = true;
+                    this.poutineImage = poutineImageObjects[Math.floor(Math.random() * poutineImageObjects.length)];
+                } else {
+                    this.shape = PIECES[Math.floor(Math.random() * PIECES.length)];
+                    this.isSpecial = false;
+                    this.color = Math.floor(Math.random() * COLORS.length);
                 }
-            });
-        });
+                this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+                this.y = 0;
+            }
 
-        // Draw poutine image
-        ctx.drawImage(
-            this.poutineImage,
-            this.x * BLOCK_SIZE,
-            this.y * BLOCK_SIZE,
-            BLOCK_SIZE * 2,
-            BLOCK_SIZE * 2
-        );
-    } else {
-        // Normal piece drawing remains the same
-        ctx.fillStyle = COLORS[this.color];
-        this.shape.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value) {
-                    ctx.fillRect(
-                        (this.x + x) * BLOCK_SIZE,
-                        (this.y + y) * BLOCK_SIZE,
-                        BLOCK_SIZE - 1,
-                        BLOCK_SIZE - 1
+            draw() {
+                if (this.isSpecial) {
+                    // Draw golden border
+                    ctx.fillStyle = '#FFD700';
+                    this.shape.forEach((row, y) => {
+                        row.forEach((value, x) => {
+                            if (value) {
+                                ctx.strokeStyle = '#FFD700';
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(
+                                    (this.x + x) * BLOCK_SIZE,
+                                    (this.y + y) * BLOCK_SIZE,
+                                    BLOCK_SIZE,
+                                    BLOCK_SIZE
+                                );
+                            }
+                        });
+                    });
+
+                    // Draw poutine image
+                    ctx.drawImage(
+                        this.poutineImage,
+                        this.x * BLOCK_SIZE,
+                        this.y * BLOCK_SIZE,
+                        BLOCK_SIZE * 2,
+                        BLOCK_SIZE * 2
                     );
+                } else {
+                    ctx.fillStyle = COLORS[this.color];
+                    this.shape.forEach((row, y) => {
+                        row.forEach((value, x) => {
+                            if (value) {
+                                ctx.fillRect(
+                                    (this.x + x) * BLOCK_SIZE,
+                                    (this.y + y) * BLOCK_SIZE,
+                                    BLOCK_SIZE - 1,
+                                    BLOCK_SIZE - 1
+                                );
+                            }
+                        });
+                    });
                 }
-            });
-        });
-    }
-}
+            }
 
             moveDown() {
                 this.y++;
@@ -258,6 +373,7 @@ constructor(isSpecial = false) {
                 
                 setTimeout(() => explosion.remove(), 500);
 
+                // Clear blocks in 5x5 area
                 for (let dy = -2; dy <= 2; dy++) {
                     for (let dx = -2; dx <= 2; dx++) {
                         const newY = this.y + dy;
@@ -269,6 +385,7 @@ constructor(isSpecial = false) {
                     }
                 }
                 updateScore(50);
+                createPoutineDecoration();
             }
 
             freeze() {
@@ -303,15 +420,76 @@ constructor(isSpecial = false) {
         }
 
         function createPoutineDecoration() {
+            const decoration = document.createElement('img');
+            decoration.className = 'poutine-decoration';
+            decoration.src = POUTINE_IMAGES[Math.floor(Math.random() * POUTINE_IMAGES.length)];
+            
+            const gameBox = document.getElementById('game-container').getBoundingClientRect();
+            const ginetteBox = document.getElementById('ginette').getBoundingClientRect();
+            
+            let x, y;
+            do {
+                x = Math.random() * (window.innerWidth - 100);
+                y = Math.random() * (window.innerHeight - 100);
+            } while (
+                (x >= gameBox.left - 100 && x <= gameBox.right) ||
+                (x >= ginetteBox.left - 100 && x <= ginetteBox.right && 
+                 y >= ginetteBox.top - 100 && y <= ginetteBox.bottom)
+            );
+            
+            decoration.style.left = x + 'px';
+            decoration.style.top = y + 'px';
+            document.body.appendChild(decoration);
+            poutineDecorations.push(decoration);
+            poutineCount++;
+            document.getElementById('poutine-count').textContent = `Poutines: ${poutineCount}`;
+
             const ginette = document.getElementById('ginette');
             ginette.src = 'images/Ginette2.jpg';
             clearTimeout(ginetteTimeout);
             ginetteTimeout = setTimeout(() => {
                 ginette.src = 'images/Ginette1.jpg';
             }, 1500);
+        }
 
-            poutineCount++;
-            document.getElementById('poutine-count').textContent = `Poutines: ${poutineCount}`;
+        function updateScoreboard() {
+            highScores = highScores.sort((a, b) => b.score - a.score).slice(0, MAX_SCORES);
+            localStorage.setItem('tetcrissScores', JSON.stringify(highScores));
+            
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = '<h2>High Scores</h2>';
+            highScores.forEach((entry, index) => {
+                scoreboard.innerHTML += `<div>${index + 1}. ${entry.name || 'PLAYER'} - ${entry.score} points (${entry.poutines} poutines)</div>`;
+            });
+        }
+
+        function updateSpeed() {
+            currentSpeed = Math.max(MIN_SPEED, INITIAL_SPEED - (level - 1) * SPEED_INCREASE);
+            clearInterval(gameLoop);
+            gameLoop = setInterval(() => {
+                currentPiece.moveDown();
+                drawBoard();
+            }, currentSpeed);
+        }
+
+        function updateScore(increment) {
+            score += increment;
+            document.getElementById('score').textContent = `Score: ${score}`;
+            if (Math.floor((score - increment) / 100) < Math.floor(score / 100)) {
+                level = Math.floor(score / 100) + 1;
+                createPoutineDecoration();
+                updateSpeed();
+            }
+        }
+
+        function checkLines() {
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(0));
+                    updateScore(100);
+                }
+            }
         }
 
         function drawBoard() {
@@ -336,78 +514,153 @@ constructor(isSpecial = false) {
             }
         }
 
-        function checkLines() {
-            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
-                if (board[y].every(cell => cell)) {
-                    board.splice(y, 1);
-                    board.unshift(Array(BOARD_WIDTH).fill(0));
-                    updateScore(100);
-                }
-            }
-        }
-
-        function updateScore(increment) {
-            score += increment;
-            document.getElementById('score').textContent = `Score: ${score}`;
-            
-            if (Math.floor((score - increment) / 100) < Math.floor(score / 100)) {
-                createPoutineDecoration();
-            }
-        }
-
         function gameOver() {
             clearInterval(gameLoop);
-            alert('Game Over! Click OK to restart');
+            gameLoop = null;
+            
+            // Switch to video
+            const ginette = document.getElementById('ginette');
+            ginetteVideo = document.createElement('video');
+            ginetteVideo.src = 'images/GinetteGameOver.mp4';
+            ginetteVideo.className = 'ginette-portrait';
+            ginetteVideo.autoplay = true;
+            ginetteVideo.loop = true;
+            ginette.parentNode.replaceChild(ginetteVideo, ginette);
+            
+            const nameInput = document.createElement('div');
+            nameInput.className = 'name-input';
+            nameInput.innerHTML = `
+                <h3>Game Over</h3>
+                <p>Enter your name (max 6 characters):</p>
+                <input type="text" maxlength="6" id="player-name">
+                <br>
+                <button onclick="saveScore()">Save Score</button>
+            `;
+            document.getElementById('game-container').appendChild(nameInput);
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            currentPiece = null;
+        }
+
+        function saveScore() {
+            const name = document.getElementById('player-name').value.toUpperCase() || 'PLAYER';
+            highScores.push({ name, score, poutines: poutineCount });
+            updateScoreboard();
+            document.querySelector('.name-input').remove();
+            resetGame();
+        }
+
+        function resetGame() {
+            const nameInput = document.querySelector('.name-input');
+            if (nameInput) return;
+            
+            // Restore Ginette image
+            if (ginetteVideo) {
+                const ginette = document.createElement('img');
+                ginette.src = 'images/Ginette1.jpg';
+                ginette.id = 'ginette';
+                ginette.className = 'ginette-portrait';
+                ginetteVideo.parentNode.replaceChild(ginette, ginetteVideo);
+                ginetteVideo = null;
+            }
+            
+            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+            score = 0;
+            poutineCount = 0;
+            level = 1;
+            currentSpeed = INITIAL_SPEED;
+            lastSpecialPiece = 0;
+            document.getElementById('score').textContent = 'Score: 0';
+            document.getElementById('poutine-count').textContent = 'Poutines: 0';
+            poutineDecorations.forEach(dec => dec.remove());
+            poutineDecorations = [];
+            clearInterval(gameLoop);
+            currentPiece = new Piece();
             initGame();
         }
 
         function initGame() {
             board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
-            score = 0;
-            lastSpecialPiece = 0;
-            poutineCount = 0;
-            document.getElementById('score').textContent = 'Score: 0';
-            document.getElementById('poutine-count').textContent = 'Poutines: 0';
-            
             currentPiece = new Piece();
-            
             if (gameLoop) clearInterval(gameLoop);
             
+            updateScoreboard();
             gameLoop = setInterval(() => {
-                currentPiece.moveDown();
-                drawBoard();
-            }, INITIAL_SPEED);
-
+                if (currentPiece) {
+                    currentPiece.moveDown();
+                    drawBoard();
+                }
+            }, currentSpeed);
+            
             drawBoard();
         }
 
-        // Event Listeners
+        // Event Listeners for keyboard
         document.addEventListener('keydown', event => {
             if (!currentPiece) return;
             
             switch(event.code) {
                 case 'ArrowLeft':
+                case 'KeyA':
                     currentPiece.moveLeft();
                     break;
                 case 'ArrowRight':
+                case 'KeyD':
                     currentPiece.moveRight();
                     break;
                 case 'ArrowDown':
+                case 'KeyS':
                     currentPiece.moveDown();
                     break;
                 case 'ArrowUp':
+                case 'KeyW':
                     currentPiece.rotate();
                     break;
                 case 'Space':
                     currentPiece.hardDrop();
                     break;
+                case 'KeyR':
+                    if (!document.querySelector('.name-input')) {
+                        resetGame();
+                    }
+                    break;
             }
             drawBoard();
         });
 
-        // Start game when page loads
+        // Touch controls
+        let touchInterval;
+
+        function addTouchControls(btn, action) {
+            btn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                if (!currentPiece) return;
+                action();
+                drawBoard();
+                touchInterval = setInterval(() => {
+                    if (!currentPiece) {
+                        clearInterval(touchInterval);
+                        return;
+                    }
+                    action();
+                    drawBoard();
+                }, 100);
+            });
+
+            btn.addEventListener('touchend', () => {
+                clearInterval(touchInterval);
+            });
+        }
+
+        addTouchControls(document.getElementById('leftBtn'), () => currentPiece.moveLeft());
+        addTouchControls(document.getElementById('rightBtn'), () => currentPiece.moveRight());
+        addTouchControls(document.getElementById('downBtn'), () => currentPiece.moveDown());
+        addTouchControls(document.getElementById('rotateBtn'), () => currentPiece.rotate());
+
+        // Start the game
         window.onload = initGame;
     </script>
 </body>
 </html>
-ddd
+2.0
