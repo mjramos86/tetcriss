@@ -235,17 +235,21 @@
 
         class Piece {
             constructor(shape = null, isPoutinePiece = false) {
-                this.shape = shape || PIECES[Math.floor(Math.random() * PIECES.length)];
-                this.color = Math.random() < 0.5 ? 0 : 1;
-                this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
-                this.y = 0;
-                this.isPoutinePiece = isPoutinePiece;
-                if (isPoutinePiece) {
-                    this.poutineImg = new Image();
-                    this.poutineImg.src = POUTINE_IMAGES[Math.floor(Math.random() * POUTINE_IMAGES.length)];
-                    this.shape = [[1, 1], [1, 1]];
-                }
-            }
+    this.shape = shape || PIECES[Math.floor(Math.random() * PIECES.length)];
+    this.color = Math.random() < 0.5 ? 0 : 1;
+    this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+    this.y = 0;
+    this.isPoutinePiece = isPoutinePiece;
+    if (isPoutinePiece) {
+        console.log("Creating poutine piece"); // Debug log
+        this.poutineImg = new Image();
+        this.shape = [[1, 1], [1, 1]]; // Force 2x2 shape
+        this.poutineImg.onload = () => {
+            console.log("Poutine image loaded"); // Debug log
+        };
+        this.poutineImg.src = POUTINE_IMAGES[Math.floor(Math.random() * POUTINE_IMAGES.length)];
+    }
+}
 
             draw() {
                 if (this.isPoutinePiece && this.poutineImg) {
@@ -475,7 +479,7 @@
            }
        }
         
-    function checkLines() {
+  function checkLines() {
     let linesCleared = 0;
     for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
         if (board[y].every(cell => cell)) {
@@ -483,17 +487,20 @@
             board.unshift(Array(BOARD_WIDTH).fill(0));
             linesCleared++;
             completedLines++;
-
-            // Debug log
-            console.log('Lines completed:', completedLines);
             
-            // Check for poutine piece trigger immediately after incrementing
+            console.log('Lines completed:', completedLines); // Debug log
+            
             if (completedLines % 5 === 0) {
-                console.log('Creating poutine piece');
+                console.log('Triggering poutine piece'); // Debug log
                 currentPiece = new Piece(null, true);
             }
         }
     }
+    
+    if (linesCleared > 0) {
+        updateScore(linesCleared * 100);
+    }
+}
     
     if (linesCleared > 0) {
         updateScore(linesCleared * 100);
