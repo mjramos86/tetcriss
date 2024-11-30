@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <title>TÉTCRISS</title>
     <style>
-        /* Previous styles remain the same */
         body {
             background: #1a1a1a;
             color: white;
@@ -30,6 +29,21 @@
             width: 240px;
         }
 
+        .stats {
+            font-size: 12px;
+            margin: 10px 0;
+        }
+
+        .ginette-portrait {
+            width: 200px;
+            height: 300px;
+            object-fit: cover;
+            position: absolute;
+            left: -220px;
+            top: 0;
+            z-index: 9999;
+        }
+
         .poutine-decoration {
             position: absolute;
             width: 100px;
@@ -50,14 +64,11 @@
             z-index: 100;
         }
 
-        .ginette-portrait {
-            width: 200px;
-            height: 300px;
-            object-fit: cover;
-            position: absolute;
-            left: -220px;
-            top: 0;
-            z-index: 9999;
+        .game-section {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            position: relative;
         }
 
         @keyframes float {
@@ -70,15 +81,10 @@
             0% { transform: scale(0); opacity: 1; }
             100% { transform: scale(1.5); opacity: 0; }
         }
-
-        /* Keep other existing styles */
     </style>
 </head>
 <body>
     <h1>TÉTCRISS</h1>
-    <div class="game-intro">
-        Ginette vient d'pogner une criss de grosse commande de poutines ben grasses avec du fromage qui fait squick-squick en tabarnac!
-    </div>
     <div id="score" class="stats">Score: 0</div>
     <div id="poutine-count" class="stats">Poutines: 0</div>
     <div class="game-section">
@@ -86,11 +92,10 @@
         <div id="game-container">
             <canvas id="game-board" width="240" height="480"></canvas>
         </div>
-        <div id="scoreboard"></div>
     </div>
 
     <script>
-        // Previous constants remain the same
+        // Constants
         const canvas = document.getElementById('game-board');
         const ctx = canvas.getContext('2d');
         const BLOCK_SIZE = 24;
@@ -99,19 +104,31 @@
         const COLORS = ['#F5DEB3', '#FFFFFF', '#8B4513'];
         const INITIAL_SPEED = 1000;
         const SPECIAL_PIECE_POINTS = 500;
-        const POUTINE_IMAGES = Array.from({length: 22}, (_, i) => `images/Poutine ${i + 1}.jpg`);
 
+        // Game state
+        let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+        let score = 0;
+        let currentPiece = null;
+        let gameLoop = null;
         let lastSpecialPiece = 0;
         let poutineCount = 0;
         let ginetteTimeout = null;
-        let poutineDecorations = [];
+
+        const PIECES = [
+            [[1, 1, 1, 1]],
+            [[1, 1], [1, 1]],
+            [[1, 1, 1], [0, 1, 0]],
+            [[1, 1, 1], [1, 0, 0]],
+            [[1, 1, 1], [0, 0, 1]],
+            [[1, 1, 0], [0, 1, 1]],
+            [[0, 1, 1], [1, 1, 0]]
+        ];
 
         class Piece {
             constructor(isSpecial = false) {
                 if (isSpecial) {
                     this.shape = [[1, 1], [1, 1]];
                     this.isSpecial = true;
-                    this.poutineImage = POUTINE_IMAGES[Math.floor(Math.random() * POUTINE_IMAGES.length)];
                 } else {
                     this.shape = PIECES[Math.floor(Math.random() * PIECES.length)];
                     this.isSpecial = false;
@@ -123,35 +140,46 @@
 
             draw() {
                 if (this.isSpecial) {
-                    // Draw special piece differently
-                    ctx.fillStyle = '#FFD700';  // Golden color for special piece
-                    this.shape.forEach((row, y) => {
-                        row.forEach((value, x) => {
-                            if (value) {
-                                ctx.fillRect(
-                                    (this.x + x) * BLOCK_SIZE,
-                                    (this.y + y) * BLOCK_SIZE,
-                                    BLOCK_SIZE - 1,
-                                    BLOCK_SIZE - 1
-                                );
-                            }
-                        });
-                    });
+                    ctx.fillStyle = '#FFD700';
                 } else {
-                    // Normal piece drawing
                     ctx.fillStyle = COLORS[this.color];
-                    this.shape.forEach((row, y) => {
-                        row.forEach((value, x) => {
-                            if (value) {
-                                ctx.fillRect(
-                                    (this.x + x) * BLOCK_SIZE,
-                                    (this.y + y) * BLOCK_SIZE,
-                                    BLOCK_SIZE - 1,
-                                    BLOCK_SIZE - 1
-                                );
-                            }
-                        });
+                }
+                
+                this.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            ctx.fillRect(
+                                (this.x + x) * BLOCK_SIZE,
+                                (this.y + y) * BLOCK_SIZE,
+                                BLOCK_SIZE - 1,
+                                BLOCK_SIZE - 1
+                            );
+                        }
                     });
+                });
+            }
+
+            moveDown() {
+                this.y++;
+                if (this.collision()) {
+                    this.y--;
+                    this.freeze();
+                    return false;
+                }
+                return true;
+            }
+
+            moveLeft() {
+                this.x--;
+                if (this.collision()) {
+                    this.x++;
+                }
+            }
+
+            moveRight() {
+                this.x++;
+                if (this.collision()) {
+                    this.x--;
                 }
             }
 
@@ -161,18 +189,45 @@
                 }
             }
 
+            rotate() {
+                if (this.isSpecial) return;
+                
+                const rotated = this.shape[0].map((_, i) =>
+                    this.shape.map(row => row[i]).reverse()
+                );
+                const originalShape = this.shape;
+                this.shape = rotated;
+                
+                if (this.collision()) {
+                    this.shape = originalShape;
+                }
+            }
+
+            collision() {
+                return this.shape.some((row, dy) =>
+                    row.some((value, dx) => {
+                        if (!value) return false;
+                        const newX = this.x + dx;
+                        const newY = this.y + dy;
+                        return (
+                            newX < 0 ||
+                            newX >= BOARD_WIDTH ||
+                            newY >= BOARD_HEIGHT ||
+                            (newY >= 0 && board[newY][newX])
+                        );
+                    })
+                );
+            }
+
             explode() {
-                // Create explosion effect
                 const explosion = document.createElement('div');
                 explosion.className = 'explosion';
                 explosion.style.left = `${this.x * BLOCK_SIZE - 36}px`;
                 explosion.style.top = `${this.y * BLOCK_SIZE - 36}px`;
                 document.getElementById('game-container').appendChild(explosion);
                 
-                // Remove explosion after animation
                 setTimeout(() => explosion.remove(), 500);
 
-                // Clear blocks in 5x5 area
                 for (let dy = -2; dy <= 2; dy++) {
                     for (let dx = -2; dx <= 2; dx++) {
                         const newY = this.y + dy;
@@ -183,10 +238,7 @@
                         }
                     }
                 }
-
-                // Add bonus points and check lines
                 updateScore(50);
-                checkLines();
             }
 
             freeze() {
@@ -203,71 +255,129 @@
                             }
                         });
                     });
-                    checkLines();
                 }
+                
+                checkLines();
 
-                // Check if it's time for a special piece
                 if (score - lastSpecialPiece >= SPECIAL_PIECE_POINTS) {
                     currentPiece = new Piece(true);
                     lastSpecialPiece = score;
                 } else {
-                    currentPiece = new Piece(false);
+                    currentPiece = new Piece();
                 }
 
                 if (currentPiece.collision()) {
                     gameOver();
                 }
             }
-
-            // Keep other piece methods the same
         }
 
         function createPoutineDecoration() {
-            const decoration = document.createElement('img');
-            decoration.className = 'poutine-decoration';
-            decoration.src = POUTINE_IMAGES[Math.floor(Math.random() * POUTINE_IMAGES.length)];
-            
-            const gameBox = document.getElementById('game-container').getBoundingClientRect();
-            
-            let x, y;
-            do {
-                x = Math.random() * (window.innerWidth - 100);
-                y = Math.random() * (window.innerHeight - 100);
-            } while (x >= gameBox.left - 100 && x <= gameBox.right);
-            
-            decoration.style.left = x + 'px';
-            decoration.style.top = y + 'px';
-            document.body.appendChild(decoration);
-            poutineDecorations.push(decoration);
-            poutineCount++;
-            document.getElementById('poutine-count').textContent = `Poutines: ${poutineCount}`;
-
             const ginette = document.getElementById('ginette');
             ginette.src = 'images/Ginette2.jpg';
             clearTimeout(ginetteTimeout);
             ginetteTimeout = setTimeout(() => {
                 ginette.src = 'images/Ginette1.jpg';
             }, 1500);
+
+            poutineCount++;
+            document.getElementById('poutine-count').textContent = `Poutines: ${poutineCount}`;
         }
 
-        // Add spacebar control for hard drop
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            board.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        ctx.fillStyle = COLORS[(value - 1) % COLORS.length];
+                        ctx.fillRect(
+                            x * BLOCK_SIZE,
+                            y * BLOCK_SIZE,
+                            BLOCK_SIZE - 1,
+                            BLOCK_SIZE - 1
+                        );
+                    }
+                });
+            });
+
+            if (currentPiece) {
+                currentPiece.draw();
+            }
+        }
+
+        function checkLines() {
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(0));
+                    updateScore(100);
+                }
+            }
+        }
+
+        function updateScore(increment) {
+            score += increment;
+            document.getElementById('score').textContent = `Score: ${score}`;
+            
+            if (Math.floor((score - increment) / 100) < Math.floor(score / 100)) {
+                createPoutineDecoration();
+            }
+        }
+
+        function gameOver() {
+            clearInterval(gameLoop);
+            alert('Game Over! Click OK to restart');
+            initGame();
+        }
+
+        function initGame() {
+            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+            score = 0;
+            lastSpecialPiece = 0;
+            poutineCount = 0;
+            document.getElementById('score').textContent = 'Score: 0';
+            document.getElementById('poutine-count').textContent = 'Poutines: 0';
+            
+            currentPiece = new Piece();
+            
+            if (gameLoop) clearInterval(gameLoop);
+            
+            gameLoop = setInterval(() => {
+                currentPiece.moveDown();
+                drawBoard();
+            }, INITIAL_SPEED);
+
+            drawBoard();
+        }
+
+        // Event Listeners
         document.addEventListener('keydown', event => {
             if (!currentPiece) return;
             
             switch(event.code) {
+                case 'ArrowLeft':
+                    currentPiece.moveLeft();
+                    break;
+                case 'ArrowRight':
+                    currentPiece.moveRight();
+                    break;
+                case 'ArrowDown':
+                    currentPiece.moveDown();
+                    break;
+                case 'ArrowUp':
+                    currentPiece.rotate();
+                    break;
                 case 'Space':
                     currentPiece.hardDrop();
                     break;
-                // Keep other controls the same
             }
             drawBoard();
         });
 
-        // Keep all other existing functions the same
-        
-        // Start the game
-        initGame();
+        // Start game when page loads
+        window.onload = initGame;
     </script>
 </body>
 </html>
-bbb
+ccc
