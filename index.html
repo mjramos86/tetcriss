@@ -105,6 +105,11 @@
         const INITIAL_SPEED = 1000;
         const SPECIAL_PIECE_POINTS = 500;
 
+        const poutineImages = Array.from({ length: 22 }, (_, i) => {
+    const img = new Image();
+    img.src = `images/Poutine ${i + 1}.jpg`;
+    return img;
+
         // Game state
         let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
         let score = 0;
@@ -125,39 +130,64 @@
         ];
 
         class Piece {
-            constructor(isSpecial = false) {
-                if (isSpecial) {
-                    this.shape = [[1, 1], [1, 1]];
-                    this.isSpecial = true;
-                } else {
-                    this.shape = PIECES[Math.floor(Math.random() * PIECES.length)];
-                    this.isSpecial = false;
-                    this.color = Math.floor(Math.random() * COLORS.length);
-                }
-                this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
-                this.y = 0;
-            }
+constructor(isSpecial = false) {
+    if (isSpecial) {
+        this.shape = [[1, 1], [1, 1]];
+        this.isSpecial = true;
+        this.poutineImage = poutineImages[Math.floor(Math.random() * poutineImages.length)];
+    } else {
+        this.shape = PIECES[Math.floor(Math.random() * PIECES.length)];
+        this.isSpecial = false;
+        this.color = Math.floor(Math.random() * COLORS.length);
+    }
+    this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+    this.y = 0;
+}
 
-            draw() {
-                if (this.isSpecial) {
-                    ctx.fillStyle = '#FFD700';
-                } else {
-                    ctx.fillStyle = COLORS[this.color];
+         draw() {
+    if (this.isSpecial) {
+        // Draw golden border
+        ctx.fillStyle = '#FFD700';
+        this.shape.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value) {
+                    ctx.strokeStyle = '#FFD700';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(
+                        (this.x + x) * BLOCK_SIZE,
+                        (this.y + y) * BLOCK_SIZE,
+                        BLOCK_SIZE,
+                        BLOCK_SIZE
+                    );
                 }
-                
-                this.shape.forEach((row, y) => {
-                    row.forEach((value, x) => {
-                        if (value) {
-                            ctx.fillRect(
-                                (this.x + x) * BLOCK_SIZE,
-                                (this.y + y) * BLOCK_SIZE,
-                                BLOCK_SIZE - 1,
-                                BLOCK_SIZE - 1
-                            );
-                        }
-                    });
-                });
-            }
+            });
+        });
+
+        // Draw poutine image
+        ctx.drawImage(
+            this.poutineImage,
+            this.x * BLOCK_SIZE,
+            this.y * BLOCK_SIZE,
+            BLOCK_SIZE * 2,
+            BLOCK_SIZE * 2
+        );
+    } else {
+        // Normal piece drawing remains the same
+        ctx.fillStyle = COLORS[this.color];
+        this.shape.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value) {
+                    ctx.fillRect(
+                        (this.x + x) * BLOCK_SIZE,
+                        (this.y + y) * BLOCK_SIZE,
+                        BLOCK_SIZE - 1,
+                        BLOCK_SIZE - 1
+                    );
+                }
+            });
+        });
+    }
+}
 
             moveDown() {
                 this.y++;
@@ -380,4 +410,4 @@
     </script>
 </body>
 </html>
-ccc
+ddd
