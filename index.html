@@ -46,6 +46,8 @@
             min-width: 200px;
         }
 
+        let completedLines = 0;
+
         #scoreboard h2 {
             margin-top: 0;
             color: #ffd700;
@@ -230,6 +232,75 @@
                 this.color = Math.random() < 0.5 ? 0 : 1;
                 this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
                 this.y = 0;
+
+                class Piece {
+    constructor(shape = null, isPoutinePiece = false) {
+        this.shape = shape || PIECES[Math.floor(Math.random() * PIECES.length)];
+        this.color = Math.random() < 0.5 ? 0 : 1;
+        this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+        this.y = 0;
+        this.isPoutinePiece = isPoutinePiece;
+    }
+
+    draw() {
+        if (this.isPoutinePiece) {
+            // Draw poutine sprite
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(this.x * BLOCK_SIZE, this.y * BLOCK_SIZE, 
+                        BLOCK_SIZE * 2 - 1, BLOCK_SIZE * 2 - 1);
+        } else {
+            // Normal piece drawing
+            this.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        ctx.fillStyle = COLORS[this.color];
+                        ctx.fillRect((this.x + x) * BLOCK_SIZE, (this.y + y) * BLOCK_SIZE, 
+                                   BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                    }
+                });
+            });
+        }
+    }
+
+    explode() {
+        // Destroy blocks in a 5x4 area around the piece
+        for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+                const newY = this.y + dy;
+                const newX = this.x + dx;
+                if (newY >= 0 && newY < BOARD_HEIGHT && 
+                    newX >= 0 && newX < BOARD_WIDTH) {
+                    board[newY][newX] = 0;
+                }
+            }
+        }
+        // Show explosion effect
+        showPoutineAlert();
+    }
+
+    freeze() {
+        if (this.isPoutinePiece) {
+            this.explode();
+            currentPiece = new Piece();
+        } else {
+            this.shape.forEach((row, dy) => {
+                row.forEach((value, dx) => {
+                    if (value) {
+                        const newY = this.y + dy;
+                        if (newY >= 0) {
+                            board[newY][this.x + dx] = this.color + 1;
+                        }
+                    }
+                });
+            });
+            checkLines();
+        }
+        currentPiece = new Piece();
+        if (currentPiece.collision()) {
+            gameOver();
+        }
+    }
+}
             }
 
             draw() {
@@ -384,15 +455,26 @@
             }
         }
 
-        function checkLines() {
-            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
-                if (board[y].every(cell => cell)) {
-                    board.splice(y, 1);
-                    board.unshift(Array(BOARD_WIDTH).fill(0));
-                    updateScore(100);
-                }
-            }
+function checkLines() {
+    let linesCleared = 0;
+    for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell)) {
+            board.splice(y, 1);
+            board.unshift(Array(BOARD_WIDTH).fill(0));
+            linesCleared++;
+            completedLines++;
         }
+    }
+    
+    if (linesCleared > 0) {
+        updateScore(linesCleared * 100);
+        
+        // Check for poutine piece trigger
+        if (Math.floor((completedLines - linesCleared) / 5) < Math.floor(completedLines / 5)) {
+            currentPiece = new Piece([[1, 1], [1, 1]], true);
+        }
+    }
+}
 
 function drawBoard() {
     if (!ctx) return;  // Safety check
