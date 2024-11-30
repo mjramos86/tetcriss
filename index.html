@@ -120,26 +120,36 @@
         }
 
         .touch-controls {
-            display: none;
-            gap: 10px;
-            margin-top: 20px;
-            justify-content: center;
-            position: fixed;
-            bottom: 20px;
-            left: 0;
-            right: 0;
-        }
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+        justify-content: center;
+        position: fixed;
+        bottom: 30px;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+    }
 
-        .touch-btn {
-            width: 70px;
-            height: 70px;
-            background: rgba(255, 255, 255, 0.3);
-            border: none;
-            border-radius: 50%;
-            color: white;
-            font-size: 28px;
-            touch-action: manipulation;
-        }
+    .touch-btn {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        color: white;
+        font-size: 24px;
+        touch-action: manipulation;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+    }
+
+    .touch-btn:active {
+        background: rgba(255, 255, 255, 0.4);
+    }
 
         .explosion {
             position: absolute;
@@ -157,10 +167,17 @@
                 margin-top: -40px;
             }
             
-            .touch-controls {
-                display: flex;
-            }
+             @media (min-width: 769px) {
+        .touch-controls {
+            display: none;  /* Hide on desktop */
         }
+    }
+
+    @media (max-width: 768px) {
+        .touch-controls {
+            display: flex;
+        }
+    }
 
         @keyframes fadeInOut {
             0% { opacity: 0; }
@@ -195,11 +212,11 @@
         <div id="scoreboard"></div>
     </div>
     <div class="touch-controls">
-        <button class="touch-btn" id="leftBtn">←</button>
-        <button class="touch-btn" id="downBtn">↓</button>
-        <button class="touch-btn" id="rotateBtn">↻</button>
-        <button class="touch-btn" id="rightBtn">→</button>
-    </div>
+    <button class="touch-btn" id="leftBtn">←</button>
+    <button class="touch-btn" id="rotateBtn">↻</button>
+    <button class="touch-btn" id="hardDropBtn">⤓</button>
+    <button class="touch-btn" id="rightBtn">→</button>
+</div>
 
     <script>
         const canvas = document.getElementById('game-board');
@@ -653,12 +670,12 @@
             });
         }
 
-        addTouchControls(document.getElementById('leftBtn'), () => currentPiece.moveLeft());
-        addTouchControls(document.getElementById('rightBtn'), () => currentPiece.moveRight());
-        addTouchControls(document.getElementById('downBtn'), () => currentPiece.moveDown());
-        addTouchControls(document.getElementById('rotateBtn'), () => currentPiece.rotate());
+    addTouchControls(document.getElementById('leftBtn'), () => currentPiece.moveLeft());
+    addTouchControls(document.getElementById('rightBtn'), () => currentPiece.moveRight());
+    addTouchControls(document.getElementById('rotateBtn'), () => currentPiece.rotate());
+    addTouchControls(document.getElementById('hardDropBtn'), () => currentPiece.hardDrop());
 
-        // Start the game
+         // Start the game
         window.onload = initGame;
     </script>
 </body>
