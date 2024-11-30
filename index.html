@@ -601,21 +601,18 @@
            initGame();
        }
 
-       function initGame() {
-           board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
-           currentPiece = new Piece();
-           if (gameLoop) clearInterval(gameLoop);
-           
-           updateScoreboard();
-           gameLoop = setInterval(() => {
-               if (currentPiece) {
-                   currentPiece.moveDown();
-                   drawBoard();
-               }
-           }, currentSpeed);
-           
-           drawBoard();
-       }
+     window.onload = () => {
+    console.log("Game starting...");
+    currentPiece = new Piece();
+    updateScoreboard();
+    gameLoop = setInterval(() => {
+        if (currentPiece) {
+            currentPiece.moveDown();
+            drawBoard();
+        }
+    }, currentSpeed);
+    drawBoard();
+};
 
        document.addEventListener('keydown', event => {
            if (!currentPiece) return;
