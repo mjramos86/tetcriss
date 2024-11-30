@@ -486,23 +486,32 @@
             }
         }
 
-        function drawBoard() {
-            if (!ctx) return;  // Safety check
-            
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            board.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value) {
-                        ctx.fillStyle = COLORS[(value - 1) % COLORS.length];
-                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 
-                                   BLOCK_SIZE - 1, BLOCK_SIZE - 1);
-                    }
-                });
-            });
-            if (currentPiece) {
-                currentPiece.draw();
+  function drawBoard() {
+    if (!ctx) {
+        console.error('No context available');
+        return;
+    }
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw the board
+    board.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                // Fix color index calculation
+                let colorIndex = ((value - 1) % COLORS.length);
+                ctx.fillStyle = COLORS[colorIndex];
+                ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
             }
-        }
+        });
+    });
+
+    // Draw current piece if it exists
+    if (currentPiece) {
+        currentPiece.draw();
+    }
+}
 
         function gameOver() {
             clearInterval(gameLoop);
@@ -570,21 +579,30 @@
             initGame();
         }
 
-        function initGame() {
-            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
-            currentPiece = new Piece();
-            if (gameLoop) clearInterval(gameLoop);
-            
-            updateScoreboard();
-            gameLoop = setInterval(() => {
-                if (currentPiece) {
-                    currentPiece.moveDown();
-                    drawBoard();
-                }
-            }, currentSpeed);
-            
+function initGame() {
+    // Clear the board
+    board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+    
+    // Create first piece
+    currentPiece = new Piece();
+    
+    // Clear any existing game loop
+    if (gameLoop) clearInterval(gameLoop);
+    
+    // Update scoreboard
+    updateScoreboard();
+    
+    // Start game loop
+    gameLoop = setInterval(() => {
+        if (currentPiece) {
+            currentPiece.moveDown();
             drawBoard();
         }
+    }, currentSpeed);
+    
+    // Initial draw
+    drawBoard();
+}
 
         // Keyboard controls
         document.addEventListener('keydown', event => {
@@ -646,6 +664,7 @@
         addTouchControls(document.getElementById('rotateBtn'), () => currentPiece.rotate());
 
         initGame();
+        window.onload = initGame;
     </script>
 </body>
 </html>
