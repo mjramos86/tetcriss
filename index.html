@@ -580,29 +580,43 @@
         }
 
 function initGame() {
+function initGame() {
+    console.log('Game initializing...');  // Debug
+    
     // Clear the board
     board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
     
-    // Create first piece
+    // Create first piece and log it
     currentPiece = new Piece();
+    console.log('Initial piece created:', currentPiece);  // Debug
     
     // Clear any existing game loop
-    if (gameLoop) clearInterval(gameLoop);
+    if (gameLoop) {
+        console.log('Clearing existing game loop');  // Debug
+        clearInterval(gameLoop);
+    }
     
     // Update scoreboard
     updateScoreboard();
     
-    // Start game loop
+    // Start game loop with immediate first tick
+    console.log('Starting game loop...');  // Debug
+    drawBoard();  // Draw initial state
+    
     gameLoop = setInterval(() => {
+        console.log('Game loop tick');  // Debug
         if (currentPiece) {
             currentPiece.moveDown();
             drawBoard();
         }
     }, currentSpeed);
-    
-    // Initial draw
-    drawBoard();
 }
+
+// Make sure game starts after all elements are loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, starting game...');  // Debug
+    initGame();
+});
 
         // Keyboard controls
         document.addEventListener('keydown', event => {
