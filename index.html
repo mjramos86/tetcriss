@@ -5,16 +5,19 @@
     <meta charset="UTF-8">
     <title>TÉTCRISS</title>
     <style>
+        /* Previous styles remain the same until game-section */
+   
         body {
-            background: #1a1a1a;
-            color: white;
-            font-family: 'Press Start 2P', cursive;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-            overflow: hidden;
+    background: #1a1a1a;
+    color: white;
+    font-family: 'Press Start 2P', cursive;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0;
+    padding: 20px;
+    overflow: hidden;
+}
         }
 
         #game-container {
@@ -30,7 +33,7 @@
         }
 
         .stats {
-            font-size: 18px;
+            font-size: 12px;
             margin: 10px 0;
         }
 
@@ -53,17 +56,6 @@
             margin: 5px 0;
             padding: 5px;
             border-bottom: 1px solid #333;
-        }
-
-        .poutine-alert {
-            position: absolute;
-            font-size: 48px;
-            color: #ffd700;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            animation: fadeInOut 2s ease-in-out;
-            pointer-events: none;
         }
 
         .poutine-decoration {
@@ -179,7 +171,7 @@
 <body>
     <h1>TÉTCRISS</h1>
     <div class="game-intro">
-        Ginette vient de recevoir une grosse commande de poutines bien grasses avec du fromage qui fait squik-squik! Aweille, aide-la à préparer les poutines!
+        Ginette vient d'pogner une criss de grosse commande de poutines ben grasses avec du fromage qui fait squick-squick en tabarnac! Enweye, donne-y un coup d'main pour préparer les poutines, toé!
     </div>
     <div id="score" class="stats">Score: 0</div>
     <div id="poutine-count" class="stats">Poutines: 0</div>
@@ -221,7 +213,6 @@
         let highScores = JSON.parse(localStorage.getItem('tetcrissScores')) || [];
         let ginetteTimeout = null;
         let ginetteVideo = null;
-        let completedLines = 0;
 
         const PIECES = [
             [[1, 1, 1, 1]],
@@ -234,101 +225,23 @@
         ];
 
         class Piece {
-            constructor(shape = null, isPoutinePiece = false) {
-    this.shape = shape || PIECES[Math.floor(Math.random() * PIECES.length)];
-    this.color = Math.random() < 0.5 ? 0 : 1;
-    this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
-    this.y = 0;
-    this.isPoutinePiece = isPoutinePiece;
-    if (isPoutinePiece) {
-        console.log("Creating poutine piece"); // Debug log
-        this.poutineImg = new Image();
-        this.shape = [[1, 1], [1, 1]]; // Force 2x2 shape
-        this.poutineImg.onload = () => {
-            console.log("Poutine image loaded"); // Debug log
-        };
-        this.poutineImg.src = POUTINE_IMAGES[Math.floor(Math.random() * POUTINE_IMAGES.length)];
-    }
-}
+            constructor(shape = null) {
+                this.shape = shape || PIECES[Math.floor(Math.random() * PIECES.length)];
+                this.color = Math.random() < 0.5 ? 0 : 1;
+                this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+                this.y = 0;
+            }
 
             draw() {
-                if (this.isPoutinePiece && this.poutineImg) {
-                    ctx.drawImage(this.poutineImg, 
-                        this.x * BLOCK_SIZE, 
-                        this.y * BLOCK_SIZE, 
-                        BLOCK_SIZE * 2, 
-                        BLOCK_SIZE * 2);
-                } else {
-                    this.shape.forEach((row, y) => {
-                        row.forEach((value, x) => {
-                            if (value) {
-                                ctx.fillStyle = COLORS[this.color];
-                                ctx.fillRect(
-                                    (this.x + x) * BLOCK_SIZE, 
-                                    (this.y + y) * BLOCK_SIZE, 
-                                    BLOCK_SIZE - 1, 
-                                    BLOCK_SIZE - 1
-                                );
-                            }
-                        });
-                    });
-                }
-            }
-
-            createExplosionEffect() {
-                const explosionCenter = {
-                    x: (this.x + 1) * BLOCK_SIZE,
-                    y: (this.y + 1) * BLOCK_SIZE
-                };
-
-                const particles = [];
-                for (let i = 0; i < 20; i++) {
-                    particles.push({
-                        x: explosionCenter.x,
-                        y: explosionCenter.y,
-                        vx: (Math.random() - 0.5) * 10,
-                        vy: (Math.random() - 0.5) * 10,
-                        life: 1
-                    });
-                }
-
-                let explosionFrame = 0;
-                const explosionInterval = setInterval(() => {
-                    ctx.save();
-                    particles.forEach(particle => {
-                        particle.x += particle.vx;
-                        particle.y += particle.vy;
-                        particle.life -= 0.02;
-                        if (particle.life > 0) {
-                            ctx.fillStyle = `rgba(255, 215, 0, ${particle.life})`;
-                            ctx.beginPath();
-                            ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
-                            ctx.fill();
+                this.shape.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value) {
+                            ctx.fillStyle = COLORS[this.color];
+                            ctx.fillRect((this.x + x) * BLOCK_SIZE, (this.y + y) * BLOCK_SIZE, 
+                                       BLOCK_SIZE - 1, BLOCK_SIZE - 1);
                         }
                     });
-                    ctx.restore();
-                    drawBoard();
-
-                    explosionFrame++;
-                    if (explosionFrame >= 50) {
-                        clearInterval(explosionInterval);
-                    }
-                }, 20);
-            }
-
-            explode() {
-                this.createExplosionEffect();
-
-                for (let dy = -2; dy <= 2; dy++) {
-                    for (let dx = -2; dx <= 2; dx++) {
-                        const newY = this.y + 1 + dy;
-                        const newX = this.x + 1 + dx;
-                        if (newY >= 0 && newY < BOARD_HEIGHT && 
-                            newX >= 0 && newX < BOARD_WIDTH) {
-                            board[newY][newX] = 0;
-                        }
-                    }
-                }
+                });
             }
 
             moveDown() {
@@ -381,23 +294,18 @@
             }
 
             freeze() {
-                if (this.isPoutinePiece) {
-                    this.explode();
-                    currentPiece = new Piece();
-                } else {
-                    this.shape.forEach((row, dy) => {
-                        row.forEach((value, dx) => {
-                            if (value) {
-                                const newY = this.y + dy;
-                                if (newY >= 0) {
-                                    board[newY][this.x + dx] = this.color + 1;
-                                }
+                this.shape.forEach((row, dy) => {
+                    row.forEach((value, dx) => {
+                        if (value) {
+                            const newY = this.y + dy;
+                            if (newY >= 0) {
+                                board[newY][this.x + dx] = this.color + 1;
                             }
-                        });
+                        }
                     });
-                    checkLines();
-                    currentPiece = new Piece();
-                }
+                });
+                checkLines();
+                currentPiece = new Piece();
                 if (currentPiece.collision()) {
                     gameOver();
                 }
@@ -439,171 +347,141 @@
 
         function updateScoreboard() {
             highScores = highScores.sort((a, b) => b.score - a.score).slice(0, MAX_SCORES);
-            highScores = highScores.sort((a, b) => b.score - a.score).slice(0, MAX_SCORES);
-           localStorage.setItem('tetcrissScores', JSON.stringify(highScores));
-           
-           const scoreboard = document.getElementById('scoreboard');
-           scoreboard.innerHTML = '<h2>High Scores</h2>';
-           highScores.forEach((entry, index) => {
-               scoreboard.innerHTML += `<div>${index + 1}. ${entry.name || 'PLAYER'} - ${entry.score} points (${entry.poutines} poutines)</div>`;
-           });
-       }
-
-       function showPoutineAlert() {
-           const alert = document.createElement('div');
-           alert.className = 'poutine-alert';
-           alert.textContent = 'POUTINE!';
-           document.getElementById('game-container').appendChild(alert);
-           setTimeout(() => alert.remove(), 2000);
-       }
-
-       function updateSpeed() {
-           currentSpeed = Math.max(MIN_SPEED, INITIAL_SPEED - (level - 1) * SPEED_INCREASE);
-           clearInterval(gameLoop);
-           gameLoop = setInterval(() => {
-               if (currentPiece) {
-                   currentPiece.moveDown();
-                   drawBoard();
-               }
-           }, currentSpeed);
-       }
-
-       function updateScore(increment) {
-           score += increment;
-           document.getElementById('score').textContent = `Score: ${score}`;
-           if (Math.floor((score - increment) / 100) < Math.floor(score / 100)) {
-               showPoutineAlert();
-               createPoutineDecoration();
-               level = Math.floor(score / 100) + 1;
-               updateSpeed();
-           }
-       }
-        
-  function checkLines() {
-    let linesCleared = 0;
-    for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
-        if (board[y].every(cell => cell)) {
-            board.splice(y, 1);
-            board.unshift(Array(BOARD_WIDTH).fill(0));
-            linesCleared++;
-            completedLines++;
+            localStorage.setItem('tetcrissScores', JSON.stringify(highScores));
             
-            console.log('Lines completed:', completedLines); // Debug log
-            
-            if (completedLines % 5 === 0) {
-                console.log('Triggering poutine piece'); // Debug log
-                currentPiece = new Piece(null, true);
+            const scoreboard = document.getElementById('scoreboard');
+            scoreboard.innerHTML = '<h2>High Scores</h2>';
+            highScores.forEach((entry, index) => {
+                scoreboard.innerHTML += `<div>${index + 1}. ${entry.name || 'PLAYER'} - ${entry.score} points (${entry.poutines} poutines)</div>`;
+            });
+        }
+
+        function showPoutineAlert() {
+            const alert = document.createElement('div');
+            alert.className = 'poutine-alert';
+            alert.textContent = 'POUTINE!';
+            document.getElementById('game-container').appendChild(alert);
+            setTimeout(() => alert.remove(), 2000);
+        }
+
+        function updateSpeed() {
+            currentSpeed = Math.max(MIN_SPEED, INITIAL_SPEED - (level - 1) * SPEED_INCREASE);
+            clearInterval(gameLoop);
+            gameLoop = setInterval(() => {
+                currentPiece.moveDown();
+                drawBoard();
+            }, currentSpeed);
+        }
+
+        function updateScore(increment) {
+            score += increment;
+            document.getElementById('score').textContent = `Score: ${score}`;
+            if (Math.floor((score - increment) / 100) < Math.floor(score / 100)) {
+                showPoutineAlert();
+                createPoutineDecoration();
+                level = Math.floor(score / 100) + 1;
+                updateSpeed();
             }
         }
-    }
+
+        function checkLines() {
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(0));
+                    updateScore(100);
+                }
+            }
+        }
+
+function drawBoard() {
+    if (!ctx) return;  // Safety check
     
-    if (linesCleared > 0) {
-        updateScore(linesCleared * 100);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    board.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                ctx.fillStyle = COLORS[value - 1];
+                ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 
+                           BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+            }
+        });
+    });
+    if (currentPiece) {
+        currentPiece.draw();
     }
 }
+
+function gameOver() {
+    clearInterval(gameLoop);
+    gameLoop = null;
     
-    if (linesCleared > 0) {
-        updateScore(linesCleared * 100);
-    }
+    // Switch to video
+    const ginette = document.getElementById('ginette');
+    ginetteVideo = document.createElement('video');
+    ginetteVideo.src = 'images/GinetteGameOver.mp4';
+    ginetteVideo.className = 'ginette-portrait';
+    ginetteVideo.autoplay = true;
+    ginetteVideo.loop = true;
+    ginette.parentNode.replaceChild(ginetteVideo, ginette);
+    
+    const nameInput = document.createElement('div');
+    nameInput.className = 'name-input';
+    nameInput.innerHTML = `
+        <h3>Game Over</h3>
+        <p>Enter your name (max 6 characters):</p>
+        <input type="text" maxlength="6" id="player-name">
+        <br>
+        <button onclick="saveScore()">Save Score</button>
+    `;
+    document.getElementById('game-container').appendChild(nameInput);
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    currentPiece = null;
 }
-           
-           if (linesCleared > 0) {
-               updateScore(linesCleared * 100);
-               
-               // Check for poutine piece trigger
-               if (Math.floor((completedLines - linesCleared) / 5) < Math.floor(completedLines / 5)) {
-                   currentPiece = new Piece(null, true);
-               }
-           }
-       }
 
-       function drawBoard() {
-           if (!ctx) return;
-           
-           ctx.clearRect(0, 0, canvas.width, canvas.height);
-           board.forEach((row, y) => {
-               row.forEach((value, x) => {
-                   if (value) {
-                       ctx.fillStyle = COLORS[value - 1];
-                       ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 
-                                  BLOCK_SIZE - 1, BLOCK_SIZE - 1);
-                   }
-               });
-           });
-           if (currentPiece) {
-               currentPiece.draw();
-           }
-       }
+        function saveScore() {
+            const name = document.getElementById('player-name').value.toUpperCase() || 'PLAYER';
+            highScores.push({ name, score, poutines: poutineCount });
+            updateScoreboard();
+            document.querySelector('.name-input').remove();
+            resetGame();
+        }
 
-       function gameOver() {
-           clearInterval(gameLoop);
-           gameLoop = null;
-           
-           // Switch to video
-           const ginette = document.getElementById('ginette');
-           ginetteVideo = document.createElement('video');
-           ginetteVideo.src = 'images/GinetteGameOver.mp4';
-           ginetteVideo.className = 'ginette-portrait';
-           ginetteVideo.autoplay = true;
-           ginetteVideo.loop = true;
-           ginette.parentNode.replaceChild(ginetteVideo, ginette);
-           
-           const nameInput = document.createElement('div');
-           nameInput.className = 'name-input';
-           nameInput.innerHTML = `
-               <h3>Game Over</h3>
-               <p>Enter your name (max 6 characters):</p>
-               <input type="text" maxlength="6" id="player-name">
-               <br>
-               <button onclick="saveScore()">Save Score</button>
-           `;
-           document.getElementById('game-container').appendChild(nameInput);
-           
-           ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-           ctx.fillRect(0, 0, canvas.width, canvas.height);
-           currentPiece = null;
-       }
+        function resetGame() {
+            const nameInput = document.querySelector('.name-input');
+            if (nameInput) return;
+            
+            // Restore Ginette image
+            if (ginetteVideo) {
+                const ginette = document.createElement('img');
+                ginette.src = 'images/Ginette1.jpg';
+                ginette.id = 'ginette';
+                ginette.className = 'ginette-portrait';
+                ginetteVideo.parentNode.replaceChild(ginette, ginetteVideo);
+                ginetteVideo = null;
+            }
+            
+            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+            score = 0;
+            poutineCount = 0;
+            level = 1;
+            currentSpeed = INITIAL_SPEED;
+            document.getElementById('score').textContent = 'Score: 0';
+            document.getElementById('poutine-count').textContent = 'Poutines: 0';
+            poutineDecorations.forEach(dec => dec.remove());
+            poutineDecorations = [];
+            clearInterval(gameLoop);
+            currentPiece = new Piece();
+            initGame();
+        }
 
-       function saveScore() {
-           const name = document.getElementById('player-name').value.toUpperCase() || 'PLAYER';
-           highScores.push({ name, score, poutines: poutineCount });
-           updateScoreboard();
-           document.querySelector('.name-input').remove();
-           resetGame();
-       }
-
-       function resetGame() {
-           const nameInput = document.querySelector('.name-input');
-           if (nameInput) return;
-           
-           // Restore Ginette image
-           if (ginetteVideo) {
-               const ginette = document.createElement('img');
-               ginette.src = 'images/Ginette1.jpg';
-               ginette.id = 'ginette';
-               ginette.className = 'ginette-portrait';
-               ginetteVideo.parentNode.replaceChild(ginette, ginetteVideo);
-               ginetteVideo = null;
-           }
-           
-           board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
-           score = 0;
-           poutineCount = 0;
-           level = 1;
-           currentSpeed = INITIAL_SPEED;
-           completedLines = 0;
-           document.getElementById('score').textContent = 'Score: 0';
-           document.getElementById('poutine-count').textContent = 'Poutines: 0';
-           poutineDecorations.forEach(dec => dec.remove());
-           poutineDecorations = [];
-           clearInterval(gameLoop);
-           currentPiece = new Piece();
-           initGame();
-       }
-
-     window.onload = () => {
-    console.log("Game starting...");
+function initGame() {
+    board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
     currentPiece = new Piece();
+    if (gameLoop) clearInterval(gameLoop);
+    
     updateScoreboard();
     gameLoop = setInterval(() => {
         if (currentPiece) {
@@ -611,67 +489,71 @@
             drawBoard();
         }
     }, currentSpeed);
+    
     drawBoard();
-};
+}
 
-       document.addEventListener('keydown', event => {
-           if (!currentPiece) return;
-           
-           switch(event.key.toLowerCase()) {
-               case 'arrowleft':
-               case 'a':
-                   currentPiece.moveLeft();
-                   break;
-               case 'arrowright':
-               case 'd':
-                   currentPiece.moveRight();
-                   break;
-               case 'arrowdown':
-               case 's':
-                   currentPiece.moveDown();
-                   break;
-               case 'arrowup':
-               case 'w':
-                   currentPiece.rotate();
-                   break;
-               case 'r':
-                   if (!document.querySelector('.name-input')) {
-                       resetGame();
-                   }
-                   break;
-           }
-           drawBoard();
-       });
+        // Keyboard controls
+        document.addEventListener('keydown', event => {
+            if (!currentPiece) return;
+            
+            switch(event.key.toLowerCase()) {
+                case 'arrowleft':
+                case 'a':
+                    currentPiece.moveLeft();
+                    break;
+                case 'arrowright':
+                case 'd':
+                    currentPiece.moveRight();
+                    break;
+                case 'arrowdown':
+                case 's':
+                    currentPiece.moveDown();
+                    break;
+                case 'arrowup':
+                case 'w':
+                    currentPiece.rotate();
+                    break;
+                case 'r':
+                    if (!document.querySelector('.name-input')) {
+                        resetGame();
+                    }
+                    break;
+            }
+            drawBoard();
+        });
 
-       let touchInterval;
+        // Touch controls
+        let touchInterval;
 
-       function addTouchControls(btn, action) {
-           btn.addEventListener('touchstart', e => {
-               e.preventDefault();
-               if (!currentPiece) return;
-               action();
-               drawBoard();
-               touchInterval = setInterval(() => {
-                   if (!currentPiece) {
-                       clearInterval(touchInterval);
-                       return;
-                   }
-                   action();
-                   drawBoard();
-               }, 100);
-           });
+        function addTouchControls(btn, action) {
+            btn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                if (!currentPiece) return;
+                action();
+                drawBoard();
+                touchInterval = setInterval(() => {
+                    if (!currentPiece) {
+                        clearInterval(touchInterval);
+                        return;
+                    }
+                    action();
+                    drawBoard();
+                }, 100);
+            });
 
-           btn.addEventListener('touchend', () => {
-               clearInterval(touchInterval);
-           });
-       }
+            btn.addEventListener('touchend', () => {
+                clearInterval(touchInterval);
+            });
+        }
 
-       addTouchControls(document.getElementById('leftBtn'), () => currentPiece.moveLeft());
-       addTouchControls(document.getElementById('rightBtn'), () => currentPiece.moveRight());
-       addTouchControls(document.getElementById('downBtn'), () => currentPiece.moveDown());
-       addTouchControls(document.getElementById('rotateBtn'), () => currentPiece.rotate());
+        addTouchControls(document.getElementById('leftBtn'), () => currentPiece.moveLeft());
+        addTouchControls(document.getElementById('rightBtn'), () => currentPiece.moveRight());
+        addTouchControls(document.getElementById('downBtn'), () => currentPiece.moveDown());
+        addTouchControls(document.getElementById('rotateBtn'), () => currentPiece.rotate());
 
-       initGame();
-   </script>
+        initGame();
+    </script>
 </body>
 </html>
+1.0
