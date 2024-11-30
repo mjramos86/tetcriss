@@ -474,17 +474,31 @@
                updateSpeed();
            }
        }
+        
+    function checkLines() {
+    let linesCleared = 0;
+    for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell)) {
+            board.splice(y, 1);
+            board.unshift(Array(BOARD_WIDTH).fill(0));
+            linesCleared++;
+            completedLines++;
 
-       function checkLines() {
-           let linesCleared = 0;
-           for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
-               if (board[y].every(cell => cell)) {
-                   board.splice(y, 1);
-                   board.unshift(Array(BOARD_WIDTH).fill(0));
-                   linesCleared++;
-                   completedLines++;
-               }
-           }
+            // Debug log
+            console.log('Lines completed:', completedLines);
+            
+            // Check for poutine piece trigger immediately after incrementing
+            if (completedLines % 5 === 0) {
+                console.log('Creating poutine piece');
+                currentPiece = new Piece(null, true);
+            }
+        }
+    }
+    
+    if (linesCleared > 0) {
+        updateScore(linesCleared * 100);
+    }
+}
            
            if (linesCleared > 0) {
                updateScore(linesCleared * 100);
