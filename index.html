@@ -119,37 +119,44 @@
             cursor: pointer;
         }
 
-        .touch-controls {
-        display: flex;
-        gap: 15px;
-        margin-top: 20px;
-        justify-content: center;
-        position: fixed;
-        bottom: 30px;
-        left: 0;
-        right: 0;
-        z-index: 1000;
-    }
+.touch-controls {
+    display: none;  /* Default to hidden */
+    gap: 15px;
+    margin-top: 20px;
+    justify-content: center;
+    position: fixed;
+    bottom: 30px;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
 
-    .touch-btn {
-        width: 240px;
-        height: 240px;
-        background: rgba(255, 255, 255, 0.2);
-        border: 2px solid rgba(255, 255, 255, 0.4);
-        border-radius: 50%;
-        color: white;
-        font-size: 96px;
-        touch-action: manipulation;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background-color 0.2s;
-    }
+.touch-btn {
+    width: 240px;
+    height: 240px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    color: white;
+    font-size: 96px;
+    touch-action: manipulation;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
 
-    .touch-btn:active {
-        background: rgba(255, 255, 255, 0.4);
+.touch-btn:active {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Show touch controls only on mobile devices */
+@media (max-width: 768px) {
+    .touch-controls {
+        display: flex;
     }
+}
 
         .explosion {
             position: absolute;
@@ -680,4 +687,4 @@
     </script>
 </body>
 </html>
-2.0
+2.1
