@@ -120,7 +120,7 @@
         }
 
 .touch-controls {
-    display: flex; /* Show by default on mobile */
+    display: flex;
     gap: 15px;
     margin-top: 20px;
     justify-content: center;
@@ -151,7 +151,6 @@
     background: rgba(255, 255, 255, 0.4);
 }
 
-/* Hide on desktop */
 @media (min-width: 769px) {
     .touch-controls {
         display: none;
@@ -173,18 +172,6 @@
                 transform: scale(0.8);
                 margin-top: -40px;
             }
-            
-             @media (min-width: 769px) {
-        .touch-controls {
-            display: none;  /* Hide on desktop */
-        }
-    }
-
-    @media (max-width: 768px) {
-        .touch-controls {
-            display: flex;
-        }
-    }
 
         @keyframes fadeInOut {
             0% { opacity: 0; }
@@ -687,4 +674,4 @@
     </script>
 </body>
 </html>
-2.11
+2.111
