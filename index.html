@@ -120,7 +120,7 @@
         }
 
 .touch-controls {
-    display: none;  /* Default to hidden */
+    display: flex; /* Show by default on mobile */
     gap: 15px;
     margin-top: 20px;
     justify-content: center;
@@ -151,10 +151,10 @@
     background: rgba(255, 255, 255, 0.4);
 }
 
-/* Show touch controls only on mobile devices */
-@media (max-width: 768px) {
+/* Hide on desktop */
+@media (min-width: 769px) {
     .touch-controls {
-        display: flex;
+        display: none;
     }
 }
 
