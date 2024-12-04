@@ -3,6 +3,7 @@
 <head>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TÉTCRISS</title>
     <style>
         body {
@@ -120,20 +121,20 @@
         }
 
 .touch-controls {
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-    justify-content: center;
-    position: fixed;
-    bottom: 30px;
-    left: 0;
-    right: 0;
-    z-index: 1000;
+    display: none;
 }
 
-@media (min-width: 769px) {
+@media screen and (max-width: 768px) {
     .touch-controls {
-        display: none;
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+        justify-content: center;
+        position: fixed;
+        bottom: 30px;
+        left: 0;
+        right: 0;
+        z-index: 1000;
     }
 }
 
