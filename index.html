@@ -120,7 +120,7 @@
         }
 
 .touch-controls {
-    display: flex;  /* Default display for mobile */
+    display: flex;
     gap: 15px;
     margin-top: 20px;
     justify-content: center;
@@ -131,7 +131,6 @@
     z-index: 1000;
 }
 
-/* Single media query to hide on desktop */
 @media (min-width: 769px) {
     .touch-controls {
         display: none;
@@ -168,11 +167,12 @@
             z-index: 100;
         }
 
-        @media (max-width: 768px) {
-            .game-section {
-                transform: scale(0.8);
-                margin-top: -40px;
-            }
+@media (max-width: 768px) {
+    .game-section {
+        transform: scale(0.8);
+        margin-top: -40px;
+    }
+}
 
         @keyframes fadeInOut {
             0% { opacity: 0; }
@@ -675,4 +675,4 @@
     </script>
 </body>
 </html>
-2.1
+2.11
